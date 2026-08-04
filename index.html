@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CV Agent 求职工作台</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
+/* ============ 全局重置与变量 ============ */
+:root{
+  --bg:#F3F4F6; --card:#FFFFFF; --border:#E5E7EB; --border-dark:#111827;
+  --t1:#111827; --t2:#6B7280; --t3:#9CA3AF;
+  --green:#10B981; --yellow:#F59E0B; --red:#EF4444; --blue:#2563EB;
+  --shadow:0 1px 3px rgba(0,0,0,0.08);
+  --shadow-lg:0 4px 12px rgba(0,0,0,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;color:var(--t1);line-height:1.6;background:var(--bg);min-height:100vh;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+input,textarea,select{font-family:inherit;font-size:14px;}
+a{color:var(--blue);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.hidden{display:none!important;}
+
+/* ============ 顶部导航 ============ */
+.topnav{position:fixed;top:0;left:0;right:0;height:56px;background:#fff;border-bottom:1px solid var(--border);box-shadow:var(--shadow);z-index:100;display:flex;align-items:center;padding:0 24px;gap:32px;}
+.nav-brand{font-size:16px;font-weight:700;color:var(--t1);white-space:nowrap;}
+.nav-brand .sub{font-size:12px;font-weight:400;color:var(--t3);margin-left:6px;}
+.nav-menu{display:flex;gap:28px;height:100%;align-items:center;}
+.nav-item{font-size:14px;color:var(--t2);position:relative;height:100%;display:flex;align-items:center;cursor:pointer;transition:color .15s;}
+.nav-item:hover{color:var(--t1);}
+.nav-item.active{color:var(--t1);font-weight:600;}
+.nav-item.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--t1);}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.profile-select{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--t2);cursor:pointer;padding:6px 10px;border-radius:8px;transition:background .15s;}
+.profile-select:hover{background:var(--bg);}
+.profile-select .arrow{font-size:10px;}
+.btn-login{background:var(--t1);color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;transition:opacity .15s;}
+.btn-login:hover{opacity:.85;}
+@media(max-width:768px){.topnav{padding:0 12px;gap:12px;}.nav-brand .sub{display:none;}.nav-menu{gap:16px;}.nav-item{font-size:13px;}.profile-select{display:none;}}
+
+/* ============ 主区域 ============ */
+.main{max-width:840px;margin:0 auto;padding:80px 24px 48px;}
+@media(max-width:768px){.main{padding:72px 12px 32px;}}
+
+/* ============ 卡片 ============ */
+.card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px;}
+.card-title{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+
+/* ============ 档案卡片 ============ */
+.profile-card{display:flex;flex-direction:column;gap:14px;}
+.pc-row1{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.pc-name{font-size:18px;font-weight:700;}
+.pc-name.muted{color:var(--t3);font-weight:600;cursor:pointer;}
+.pc-profile-tag{font-size:13px;color:var(--t2);cursor:pointer;display:flex;align-items:center;gap:2px;}
+.pc-stats{display:flex;gap:24px;flex-wrap:wrap;}
+.pc-stat .num{font-size:20px;font-weight:700;color:var(--t1);}
+.pc-stat .lbl{font-size:12px;color:var(--t2);margin-left:4px;}
+.pc-row3{display:flex;justify-content:space-between;align-items:center;}
+.pc-row3 .label{font-size:12px;color:var(--t2);}
+.btn-reupload{background:#fff;border:1px solid var(--border);color:var(--t2);padding:6px 14px;border-radius:8px;font-size:12px;transition:all .15s;}
+.btn-reupload:hover{border-color:var(--t1);color:var(--t1);}
+
+/* ============ JD 提示条 ============ */
+.jd-bar{background:#F9FAFB;border-radius:8px;padding:12px 16px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.jd-bar .prefix{color:var(--t2);}
+.jd-bar .job{color:var(--t1);font-weight:600;}
+.jd-bar .hint{color:var(--t3);}
+.jd-bar .clear{color:var(--blue);font-size:12px;cursor:pointer;}
+
+/* ============ 快捷操作 ============ */
+.quick-wrap{margin-bottom:16px;}
+.quick-label{font-size:12px;color:var(--t3);margin-bottom:8px;}
+.quick-row{display:flex;flex-wrap:wrap;gap:8px;}
+.quick-btn{background:#fff;border:1px solid var(--border);color:#374151;padding:8px 16px;border-radius:20px;font-size:14px;transition:all .15s;}
+.quick-btn:hover{border-color:var(--t1);color:var(--t1);}
+
+/* ============ 聊天框 ============ */
+.chat-card{padding:0;overflow:hidden;}
+.chat-history{max-height:340px;overflow-y:auto;padding:16px;}
+.chat-history:empty::before{content:"对话历史将显示在此处...";color:var(--t3);font-size:13px;}
+.msg{margin-bottom:12px;max-width:88%;}
+.msg.user{margin-left:auto;}
+.msg-bubble{padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.7;word-break:break-word;}
+.msg.ai .msg-bubble{background:#F3F4F6;color:var(--t1);border-top-left-radius:4px;}
+.msg.user .msg-bubble{background:#111827;color:#fff;border-top-right-radius:4px;white-space:pre-wrap;}
+/* AI 气泡 Markdown 渲染 */
+.msg.ai .msg-bubble h1,.msg.ai .msg-bubble h2,.msg.ai .msg-bubble h3{font-weight:600;margin:12px 0 6px;line-height:1.4;}
+.msg.ai .msg-bubble h1{font-size:18px;}
+.msg.ai .msg-bubble h2{font-size:16px;}
+.msg.ai .msg-bubble h3{font-size:15px;}
+.msg.ai .msg-bubble p{margin:6px 0;line-height:1.7;}
+.msg.ai .msg-bubble ul,.msg.ai .msg-bubble ol{margin:6px 0 6px 20px;}
+.msg.ai .msg-bubble li{margin:3px 0;}
+.msg.ai .msg-bubble strong{font-weight:600;color:#111827;}
+.msg.ai .msg-bubble em{font-style:italic;}
+.msg.ai .msg-bubble code{background:#E5E7EB;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Consolas,Monaco,monospace;}
+.msg.ai .msg-bubble pre{background:#F9FAFB;padding:10px;border-radius:6px;overflow-x:auto;margin:8px 0;}
+.msg.ai .msg-bubble pre code{background:none;padding:0;}
+.msg.ai .msg-bubble blockquote{border-left:3px solid var(--border);padding-left:10px;color:var(--t2);margin:6px 0;}
+.msg.ai .msg-bubble hr{border:0;border-top:1px solid #E5E7EB;margin:12px 0;}
+.msg.ai .msg-bubble a{color:var(--blue);text-decoration:underline;}
+.msg.ai .msg-bubble table{border-collapse:collapse;margin:8px 0;width:100%;}
+.msg.ai .msg-bubble th,.msg.ai .msg-bubble td{border:1px solid var(--border);padding:6px 10px;text-align:left;font-size:13px;}
+.msg.ai .msg-bubble th{background:#F9FAFB;font-weight:600;}
+.msg.user{display:flex;flex-direction:column;align-items:flex-end;}
+.msg-role{font-size:11px;color:var(--t3);margin-bottom:2px;}
+.msg.ai .msg-role{color:var(--t2);}
+.welcome-bubble{background:#F3F4F6;border-radius:12px;padding:14px 16px;font-size:13px;color:var(--t2);line-height:1.7;border-left:3px solid var(--t1);}
+.attach-area{padding:0 16px;}
+.chat-attach-tag{display:inline-flex;align-items:center;gap:6px;background:#F3F4F6;border-radius:6px;padding:4px 10px;font-size:12px;margin:6px 6px 0 0;}
+.chat-attach-tag .rm{cursor:pointer;color:var(--t3);}
+.chat-attach-tag .rm:hover{color:var(--red);}
+.img-preview-wrap{margin-top:8px;}
+.img-preview-wrap img{max-width:160px;max-height:120px;border-radius:6px;border:1px solid var(--border);}
+/* 录音上传区 */
+.audio-drop{border:2px dashed var(--border);border-radius:10px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .15s;}
+.audio-drop:hover,.audio-drop.dragover{border-color:var(--t1);background:#F9FAFB;}
+.review-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+.review-card:hover{box-shadow:var(--shadow-lg);}
+.review-card .rc-head{display:flex;justify-content:space-between;align-items:center;}
+.review-card .rc-company{font-size:15px;font-weight:700;}
+.review-card .rc-meta{font-size:12px;color:var(--t3);margin-top:4px;}
+.review-detail{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;display:none;}
+.review-detail.open{display:block;}
+.transcribe-progress{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin:10px 0;}
+.transcribe-progress div{height:100%;background:var(--t1);width:0;transition:width .3s;}
+.chat-input-row{display:flex;align-items:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border);background:#fff;}
+.chat-input-row textarea{flex:1;border:none;resize:none;outline:none;font-size:14px;line-height:1.5;min-height:24px;max-height:120px;background:transparent;}
+.chat-input-row textarea::placeholder{color:var(--t3);}
+.chat-send{display:flex;align-items:center;gap:8px;}
+.btn-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:all .15s;}
+.btn-icon:hover{color:var(--t1);background:var(--bg);}
+.btn-send{background:var(--t1);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;transition:opacity .15s;}
+.btn-send:hover{opacity:.85;}
+.btn-send:disabled{background:var(--border);cursor:not-allowed;}
+.typing{display:inline-flex;gap:3px;padding:4px 0;}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--t3);animation:typing 1.4s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;}
+.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes typing{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-3px);opacity:1;}}
+.jd-detect{background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:10px 12px;font-size:13px;margin:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.jd-detect button{padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;}
+.jd-detect .yes{background:var(--t1);color:#fff;}
+.jd-detect .no{background:#fff;border:1px solid var(--border);color:var(--t2);}
+
+/* ============ 底部 Tab ============ */
+.bottom-tabs{display:flex;gap:32px;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;}
+.bt-item{font-size:14px;color:var(--t2);padding:10px 0;position:relative;white-space:nowrap;cursor:pointer;transition:color .15s;}
+.bt-item:hover{color:var(--t1);}
+.bt-item.active{color:var(--t1);font-weight:600;}
+.bt-item.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--t1);}
+.bt-panel{display:none;animation:fade .3s ease;}
+.bt-panel.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* ============ 匹配分析 ============ */
+.match-hero{text-align:center;padding:20px 0 16px;}
+.match-score{font-size:72px;font-weight:800;color:var(--t1);line-height:1;}
+.match-suffix{font-size:24px;color:var(--t2);font-weight:600;margin-left:4px;}
+.match-job{font-size:16px;color:var(--t2);margin-top:8px;}
+.match-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0;}
+@media(max-width:768px){.match-grid{grid-template-columns:1fr;}}
+.match-tile{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .15s;}
+.match-tile:hover{box-shadow:var(--shadow-lg);}
+.match-tile-head{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--t2);}
+.match-tile .count{font-size:24px;font-weight:700;color:var(--t1);margin-top:4px;}
+.match-list-label{font-size:13px;font-weight:600;color:var(--t2);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.match-item{display:flex;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);}
+.match-item:last-child{border-bottom:none;}
+.match-item .ico{flex-shrink:0;}
+.match-item-body .t{font-size:14px;font-weight:600;}
+.match-item-body .d{font-size:13px;color:var(--t2);margin-top:2px;}
+.sev{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;margin-left:6px;font-weight:600;}
+.sev.high{background:#FEE2E2;color:var(--red);}
+.sev.medium{background:#FEF3C7;color:var(--yellow);}
+.suggestion-item{display:flex;gap:8px;padding:10px 12px;background:#FFFBEB;border-radius:8px;margin-bottom:8px;font-size:13px;line-height:1.6;}
+
+/* ============ 话术 ============ */
+.sub-tabs{display:flex;gap:24px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.sub-tab{font-size:13px;color:var(--t2);padding:8px 0;position:relative;cursor:pointer;}
+.sub-tab.active{color:var(--t1);font-weight:600;}
+.sub-tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--t1);}
+.script-card{background:#F9FAFB;border-radius:12px;padding:16px;margin-bottom:12px;}
+.script-content{font-size:14px;line-height:1.7;white-space:pre-wrap;color:var(--t1);}
+.script-explain{font-size:13px;color:var(--t2);background:#fff;border-radius:8px;padding:10px 12px;margin-top:10px;}
+.script-explain::before{content:"💡 为什么这样写：";color:var(--yellow);font-weight:600;}
+.btn-copy{background:var(--t1);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;transition:opacity .15s;}
+.btn-copy:hover{opacity:.85;}
+.btn-copy.copied{background:var(--green);}
+
+/* ============ 定制简历 ============ */
+.mode-row{display:flex;gap:8px;margin-bottom:16px;}
+.mode-btn{background:#fff;border:1px solid var(--border);color:var(--t1);padding:8px 16px;border-radius:8px;font-size:13px;transition:all .15s;}
+.mode-btn.active{background:var(--t1);color:#fff;border-color:var(--t1);}
+.target-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.target-input{flex:1;min-width:160px;}
+.target-input label{font-size:12px;color:var(--t2);display:block;margin-bottom:4px;}
+.target-input input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;outline:none;}
+.target-input input:focus{border-color:var(--t1);}
+.resume-preview{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:12px;}
+.resume-preview h1,.resume-preview h2,.resume-preview h3{margin:10px 0 6px;}
+.resume-preview h1{font-size:20px;}.resume-preview h2{font-size:16px;}.resume-preview h3{font-size:14px;}
+.resume-preview ul,.resume-preview ol{padding-left:20px;margin:6px 0;}
+.resume-preview li{margin:3px 0;}
+.resume-preview strong{color:var(--blue);}
+.common-skills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.skill-tag{background:#DBEAFE;color:var(--blue);padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;}
+
+/* ============ 按钮 ============ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:600;transition:all .15s;}
+.btn-primary{background:var(--t1);color:#fff;}
+.btn-primary:hover{opacity:.85;}
+.btn-primary:disabled{background:var(--border);cursor:not-allowed;}
+.btn-outline{background:#fff;border:1px solid var(--t1);color:var(--t1);}
+.btn-outline:hover{background:var(--t1);color:#fff;}
+.btn-block{width:100%;}
+.btn-sm{padding:6px 14px;font-size:12px;}
+.action-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ============ 投递看板 ============ */
+.status-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;}
+@media(max-width:768px){.status-cards{grid-template-columns:repeat(2,1fr);}}
+.status-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:all .15s;text-align:center;}
+.status-card:hover{box-shadow:var(--shadow-lg);}
+.status-card.active{border:2px solid var(--t1);}
+.status-card .name{font-size:12px;color:var(--t2);}
+.status-card .cnt{font-size:20px;font-weight:700;margin-top:2px;}
+.app-card{background:#fff;border-radius:12px;box-shadow:var(--shadow);padding:16px;margin-bottom:12px;}
+.app-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+.app-company{font-size:16px;font-weight:700;}
+.app-position{font-size:14px;color:var(--t2);margin-top:2px;}
+.app-meta{font-size:12px;color:var(--t3);margin-top:4px;}
+.app-status{padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;}
+.app-status.s投递中{background:#F3F4F6;color:var(--t2);}
+.app-status.s面试中{background:#DBEAFE;color:var(--blue);}
+.app-status.s已通过{background:#D1FAE5;color:var(--green);}
+.app-status.s已拒绝{background:#FEE2E2;color:var(--red);}
+.app-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.app-detail{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;}
+.score-pill{display:inline-block;background:#F3F4F6;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:600;margin-left:8px;}
+.score-pill.high{background:#D1FAE5;color:var(--green);}
+.score-pill.mid{background:#FEF3C7;color:var(--yellow);}
+.score-pill.low{background:#FEE2E2;color:var(--red);}
+
+/* ============ 表单 ============ */
+.form-group{margin-bottom:12px;}
+.form-group label{font-size:13px;font-weight:600;display:block;margin-bottom:6px;}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;outline:none;background:#fff;}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--t1);}
+
+/* ============ Modal ============ */
+.mask{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:200;padding:16px;}
+.mask.open{display:flex;}
+.modal{width:100%;max-width:460px;background:#fff;border-radius:12px;overflow:hidden;animation:pop .2s ease;max-height:90vh;display:flex;flex-direction:column;}
+@keyframes pop{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:scale(1);}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);}
+.modal-head h3{font-size:16px;font-weight:700;}
+.modal-body{padding:20px;overflow-y:auto;}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--border);background:#F9FAFB;}
+.x-btn{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--t2);}
+.x-btn:hover{background:var(--bg);color:var(--t1);}
+
+/* ============ 上传 ============ */
+.upload-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.upload-tab{flex:1;padding:10px;text-align:center;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--t2);cursor:pointer;}
+.upload-tab.active{background:var(--t1);color:#fff;border-color:var(--t1);}
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:32px 16px;text-align:center;cursor:pointer;transition:all .15s;}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--t1);background:#F9FAFB;}
+.drop-zone .ic{font-size:28px;margin-bottom:8px;}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;}
+.progress-fill{height:100%;background:var(--t1);width:0;transition:width .3s;}
+
+/* ============ 档案页 ============ */
+.profile-section{margin-bottom:20px;}
+.profile-section h4{font-size:14px;font-weight:700;margin-bottom:8px;color:var(--t1);padding-bottom:6px;border-bottom:1px solid var(--border);}
+.profile-item{padding:8px 12px;background:#F9FAFB;border-radius:8px;margin-bottom:6px;font-size:13px;}
+.skill-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{background:#F3F4F6;border-radius:6px;padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:4px;}
+.chip .rm{cursor:pointer;color:var(--t3);}
+.chip .rm:hover{color:var(--red);}
+.add-chip{background:#fff;border:1px dashed var(--border);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--t2);cursor:pointer;}
+.add-chip:hover{border-color:var(--t1);color:var(--t1);}
+
+/* ============ 复盘 ============ */
+.placeholder-box{text-align:center;padding:32px 16px;color:var(--t3);font-size:13px;background:#F9FAFB;border-radius:12px;margin-bottom:16px;}
+.placeholder-box .ic{font-size:32px;margin-bottom:8px;}
+.review-result{margin-top:16px;}
+.dim-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:4px 0 8px;}
+.dim-fill{height:100%;border-radius:3px;width:0;transition:width .8s cubic-bezier(.16,1,.3,1);}
+
+/* ============ 提示 / 空状态 ============ */
+.alert{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:300;box-shadow:var(--shadow-lg);display:none;}
+.alert.show{display:block;animation:slideDown .3s ease;}
+@keyframes slideDown{from{opacity:0;transform:translate(-50%,-12px);}to{opacity:1;transform:translate(-50%,0);}}
+.empty{text-align:center;padding:32px 16px;color:var(--t3);font-size:13px;}
+.loading-inline{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--t1);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-block{text-align:center;padding:40px 16px;color:var(--t2);}
+.loading-block .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--t1);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+
+/* ============ 下拉菜单 ============ */
+.dropdown{position:relative;}
+.dropdown-menu{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lg);min-width:200px;max-height:320px;overflow-y:auto;display:none;z-index:150;}
+.dropdown-menu.open{display:block;}
+.dropdown-item{padding:10px 14px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.dropdown-item:hover{background:var(--bg);}
+.dropdown-item.active{background:#F9FAFB;font-weight:600;}
+.dropdown-item .mini{font-size:11px;color:var(--t3);}
+.dropdown-divider{height:1px;background:var(--border);margin:4px 0;}
+
+/* ============ 模拟面试全屏覆盖层 ============ */
+.mock-overlay{position:fixed;inset:0;background:#fff;z-index:250;display:none;flex-direction:column;}
+.mock-overlay.open{display:flex;}
+.mock-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);background:#fff;box-shadow:var(--shadow);gap:12px;flex-wrap:wrap;}
+.mock-header .mh-title{font-size:16px;font-weight:700;}
+.mock-header .mh-progress{font-size:13px;color:var(--t2);background:#F3F4F6;padding:4px 12px;border-radius:12px;}
+.mock-header .mh-close{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:18px;}
+.mock-header .mh-close:hover{background:var(--bg);color:var(--t1);}
+.mock-body{flex:1;overflow-y:auto;padding:24px;max-width:760px;margin:0 auto;width:100%;}
+.mock-q-bubble{background:#F3F4F6;border-radius:12px;padding:14px 16px;margin-bottom:16px;border-top-left-radius:4px;}
+.mock-q-bubble .role{font-size:11px;color:var(--t2);margin-bottom:4px;}
+.mock-q-bubble .qtxt{font-size:15px;line-height:1.7;}
+.mock-a-bubble{background:#111827;color:#fff;border-radius:12px;padding:14px 16px;margin-bottom:16px;margin-left:auto;max-width:88%;border-top-right-radius:4px;white-space:pre-wrap;}
+.mock-a-bubble .role{font-size:11px;color:#9CA3AF;margin-bottom:4px;}
+.mock-input-bar{display:flex;align-items:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border);background:#fff;max-width:760px;margin:0 auto;width:100%;}
+.mock-input-bar textarea{flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;resize:none;outline:none;font-size:14px;line-height:1.5;min-height:44px;max-height:140px;}
+.mock-input-bar textarea:focus{border-color:var(--t1);}
+.mock-input-bar .btn-send{padding:10px 18px;}
+/* 反馈报告 */
+.mock-feedback{max-width:760px;margin:0 auto;width:100%;padding:24px 20px 48px;}
+.fb-hero{text-align:center;padding:16px 0 20px;}
+.fb-score{font-size:60px;font-weight:800;line-height:1;}
+.fb-suffix{font-size:20px;color:var(--t2);font-weight:600;margin-left:4px;}
+.fb-qcard{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.fb-qcard .fq-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.fb-qcard .fq-q{font-size:15px;font-weight:600;flex:1;}
+.fb-qcard .fq-score{font-size:13px;font-weight:700;padding:3px 10px;border-radius:6px;white-space:nowrap;}
+.fb-qcard .fq-section{font-size:12px;color:var(--t2);margin-top:10px;margin-bottom:4px;font-weight:600;}
+.fb-qcard .fq-content{font-size:13px;line-height:1.7;}
+.fb-qcard .fq-rewrite{background:#F0FDF4;border-left:3px solid var(--green);padding:10px 12px;border-radius:6px;font-size:13px;line-height:1.7;}
+.fb-summary{background:#F9FAFB;border-radius:12px;padding:18px;margin-top:8px;}
+.fb-summary h3{font-size:15px;font-weight:700;margin-bottom:10px;}
+.fb-summary .fb-row{margin-bottom:10px;}
+.fb-summary .fb-row .lbl{font-size:13px;font-weight:700;margin-bottom:4px;}
+.fb-summary .fb-row ul{margin:4px 0 0 18px;font-size:13px;line-height:1.8;}
+.fb-summary .strengths .lbl{color:var(--green);}
+.fb-summary .weaknesses .lbl{color:var(--red);}
+.fb-summary .nextprep .lbl{color:var(--blue);}
+</style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<nav class="topnav">
+  <div class="nav-brand">CV Agent<span class="sub">求职工作台</span></div>
+  <div class="nav-menu">
+    <div class="nav-item active" data-page="workbench">工作台</div>
+    <div class="nav-item" data-page="profile">档案</div>
+    <div class="nav-item" data-page="applications">投递记录</div>
+    <div class="nav-item" data-page="interview">面试复盘</div>
+  </div>
+  <div class="nav-right">
+    <div class="dropdown">
+      <div class="profile-select" id="profileSelectBtn">档案: <span id="profileSelectName">示例档案</span> <span class="arrow">▼</span></div>
+      <div class="dropdown-menu" id="profileDropdown"></div>
+    </div>
+    <button class="btn-login" id="apiSettingBtn">API 设置</button>
+  </div>
+</nav>
+
+<main class="main">
+  <!-- ===== 工作台页面 ===== -->
+  <div id="page-workbench">
+    <!-- 档案卡片 -->
+    <div class="card profile-card" id="profileCard"></div>
+    <!-- JD 提示条 -->
+    <div class="jd-bar" id="jdBar"></div>
+    <!-- 快捷操作 -->
+    <div class="quick-wrap">
+      <div class="quick-label">你可以试试</div>
+      <div class="quick-row">
+        <button class="quick-btn" data-action="match">哪块最应该改</button>
+        <button class="quick-btn" data-action="scripts">改 Boss 话术</button>
+        <button class="quick-btn" data-action="resume">再定制一版</button>
+        <button class="quick-btn" data-action="gap">短板怎么补</button>
+      </div>
+    </div>
+    <!-- 聊天框 -->
+    <div class="card chat-card">
+      <div class="chat-history" id="chatHistory"></div>
+      <div id="jdDetectWrap"></div>
+      <div class="attach-area" id="chatAttachArea"></div>
+      <div class="chat-input-row">
+        <textarea id="chatInput" placeholder="追问匹配细节 / 让 AI 改话术 / 粘一段新的 JD..." rows="1"></textarea>
+        <div class="chat-send">
+          <button class="btn-icon" id="chatAttachBtn" title="上传文件（PDF/Word/图片）">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+          </button>
+          <button class="btn-send" id="chatSendBtn" disabled>发送</button>
+        </div>
+      </div>
+      <input type="file" id="chatFileInput" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" class="hidden">
+    </div>
+    <!-- 底部 Tab -->
+    <div class="bottom-tabs" id="bottomTabs">
+      <div class="bt-item active" data-tab="match">匹配分析</div>
+      <div class="bt-item" data-tab="scripts">话术</div>
+      <div class="bt-item" data-tab="resume">定制简历</div>
+      <div class="bt-item" data-tab="ivprep">面试准备</div>
+    </div>
+    <div id="tab-match" class="bt-panel active"></div>
+    <div id="tab-scripts" class="bt-panel"></div>
+    <div id="tab-resume" class="bt-panel"></div>
+    <div id="tab-ivprep" class="bt-panel"></div>
+  </div>
+
+  <!-- ===== 档案页面 ===== -->
+  <div id="page-profile" class="hidden">
+    <div class="card">
+      <div class="card-title">原始简历</div>
+      <div id="rawResumeView" style="font-size:13px;line-height:1.7;white-space:pre-wrap;background:#F9FAFB;border-radius:8px;padding:14px;max-height:300px;overflow-y:auto;"></div>
+      <div style="margin-top:12px;"><button class="btn-outline btn-sm" id="reuploadBtn2">重新上传/粘贴</button></div>
+    </div>
+    <div class="card">
+      <div class="card-title">结构化档案</div>
+      <div id="structuredProfile"></div>
+    </div>
+  </div>
+
+  <!-- ===== 投递记录页面 ===== -->
+  <div id="page-applications" class="hidden">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <div class="card-title" style="margin-bottom:0;">投递记录</div>
+        <button class="btn-primary btn-sm" id="addAppBtn">+ 添加新投递</button>
+      </div>
+      <div class="status-cards" id="statusCards"></div>
+      <div id="appList"></div>
+    </div>
+  </div>
+
+  <!-- ===== 面试复盘页面 ===== -->
+  <div id="page-interview" class="hidden">
+    <div class="card">
+      <div class="card-title">面试复盘</div>
+      <div class="form-group"><label>面试公司 / 岗位</label><input type="text" id="ivCompany" placeholder="如：字节跳动 · AI产品经理"></div>
+      <div class="audio-drop" id="audioDrop">
+        <div style="font-size:28px;margin-bottom:6px;">📁</div>
+        <div>点击或拖拽面试录音到此处</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:4px;">支持 .mp3 .wav .m4a（仅 Chrome/Edge 可转写）</div>
+        <input type="file" id="audioInput" accept=".mp3,.wav,.m4a,audio/*" class="hidden">
+      </div>
+      <div id="audioStatus" class="hidden" style="margin-top:10px;font-size:13px;"></div>
+      <div class="form-group" style="margin-top:12px;"><label>或粘贴面试文字稿（问题+你的回答）</label><textarea id="ivTranscript" placeholder="面试官：请介绍一下你自己&#10;我：我是..." style="min-height:140px;"></textarea></div>
+      <button class="btn-primary btn-block" id="ivAnalyzeBtn">AI 分析面试</button>
+      <div id="ivResult" class="review-result"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">历史复盘记录</div>
+      <div id="ivHistoryList"></div>
+    </div>
+  </div>
+</main>
+
+<!-- API 设置 Modal -->
+<div class="mask" id="apiModal">
+  <div class="modal">
+    <div class="modal-head"><h3>DeepSeek API 设置</h3><button class="x-btn" data-close="apiModal">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>API Key</label>
+        <div style="position:relative;">
+          <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxx" style="padding-right:40px;">
+          <button class="x-btn" id="toggleEyeBtn" style="position:absolute;right:4px;top:4px;">👁</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--t2);background:#F9FAFB;border-radius:8px;padding:10px 12px;">DeepSeek API 定价：100万token仅约1元，普通使用约 0.01-0.05 元/次。<br>获取 Key → <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com/api_keys</a></div>
+    </div>
+    <div class="modal-foot"><button class="btn-outline btn-sm" data-close="apiModal">取消</button><button class="btn-primary btn-sm" id="saveKeyBtn">保存</button></div>
+  </div>
+</div>
+
+<!-- 上传简历 Modal -->
+<div class="mask" id="uploadModal">
+  <div class="modal">
+    <div class="modal-head"><h3>上传简历</h3><button class="x-btn" data-close="uploadModal">✕</button></div>
+    <div class="modal-body">
+      <div class="upload-tabs">
+        <div class="upload-tab active" data-utab="paste">粘贴文本</div>
+        <div class="upload-tab" data-utab="pdf">上传 PDF</div>
+      </div>
+      <div id="utab-paste">
+        <textarea id="uploadResumeText" placeholder="在此粘贴你的完整简历..." style="width:100%;min-height:200px;padding:12px;border:1px solid var(--border);border-radius:8px;outline:none;resize:vertical;"></textarea>
+      </div>
+      <div id="utab-pdf" class="hidden">
+        <div class="drop-zone" id="dropZone">
+          <div class="ic">📄</div>
+          <div>点击或拖拽 PDF 到此处（≤5MB）</div>
+          <input type="file" id="fileInput" accept=".pdf" class="hidden">
+        </div>
+        <div id="pdfStatus" class="hidden" style="margin-top:10px;font-size:13px;"></div>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>档案名称</label>
+        <input type="text" id="uploadProfileName" placeholder="如：求职版 / 实习版" value="示例档案">
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-outline btn-sm" data-close="uploadModal">取消</button><button class="btn-primary btn-sm" id="uploadConfirmBtn">解析并保存</button></div>
+  </div>
+</div>
+
+<!-- 添加投递 Modal -->
+<div class="mask" id="appModal">
+  <div class="modal">
+    <div class="modal-head"><h3>添加新投递</h3><button class="x-btn" data-close="appModal">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>公司名称</label><input type="text" id="appCompany" placeholder="如：字节跳动"></div>
+      <div class="form-group"><label>岗位名称</label><input type="text" id="appPosition" placeholder="如：AI产品经理"></div>
+      <div class="form-group"><label>JD 文本（粘贴）</label><textarea id="appJd" placeholder="粘贴目标岗位的JD..." style="min-height:120px;"></textarea></div>
+      <div class="form-group"><label>当前状态</label>
+        <select id="appStatus"><option>投递中</option><option>面试中</option><option>已通过</option><option>已拒绝</option></select>
+      </div>
+      <div style="font-size:12px;color:var(--t3);">保存后将自动调用 AI 生成匹配度分数</div>
+    </div>
+    <div class="modal-foot"><button class="btn-outline btn-sm" data-close="appModal">取消</button><button class="btn-primary btn-sm" id="appSaveBtn">保存并分析</button></div>
+  </div>
+</div>
+
+<div class="alert" id="alertBox"></div>
+
+<!-- 模拟面试设置 Modal -->
+<div class="mask" id="mockSetupModal">
+  <div class="modal">
+    <div class="modal-head"><h3>开始模拟面试</h3><button class="x-btn" data-close="mockSetupModal">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>面试岗位</label><input type="text" id="mockPosition" placeholder="如：AI产品经理"></div>
+      <div class="form-group"><label>题目数量</label>
+        <select id="mockQCount"><option value="3">3 题（快速）</option><option value="5" selected>5 题（标准）</option><option value="8">8 题（深度）</option></select>
+      </div>
+      <div class="form-group"><label>难度</label>
+        <select id="mockDifficulty"><option value="简单">简单（暖场）</option><option value="中等" selected>中等（真实面试）</option><option value="困难">困难（压力面）</option></select>
+      </div>
+      <div style="font-size:12px;color:var(--t3);background:#F9FAFB;border-radius:8px;padding:10px 12px;">流程：AI 逐题提问 → 你作答 → 全部答完后生成每题评分、改写、改进建议 + 整体强项/弱项总结。</div>
+    </div>
+    <div class="modal-foot"><button class="btn-outline btn-sm" data-close="mockSetupModal">取消</button><button class="btn-primary btn-sm" id="mockStartBtn">开始面试</button></div>
+  </div>
+</div>
+
+<!-- 模拟面试全屏覆盖层 -->
+<div class="mock-overlay" id="mockOverlay">
+  <div class="mock-header">
+    <div class="mh-title">🎯 模拟面试 · <span id="mockOverlayTitle">岗位</span></div>
+    <div class="mh-progress" id="mockOverlayProgress">第 0 / 0 题</div>
+    <button class="mh-close" id="mockCloseBtn" title="退出">✕</button>
+  </div>
+  <div class="mock-body" id="mockBody"></div>
+  <div class="mock-input-bar" id="mockInputBar">
+    <textarea id="mockInput" placeholder="输入你的回答...（Enter 发送，Shift+Enter 换行）" rows="1"></textarea>
+    <button class="btn-send btn-primary" id="mockSendBtn">发送</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+ * CV Agent 求职工作台 V3 主逻辑
+ * 存储：localStorage cv_agent_data { profiles, active_profile_id, applications, current_jd }
+ * API：DeepSeek deepseek-chat
+ * ============================================================ */
+if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+if(window.marked) marked.setOptions({breaks:true});
+
+const $=(id)=>document.getElementById(id);
+const $$=(sel)=>document.querySelectorAll(sel);
+
+/* ===== 数据层 ===== */
+const Store={
+  key:'cv_agent_data',
+  load(){ try{ return JSON.parse(localStorage.getItem(this.key))||null; }catch(e){ return null; } },
+  save(d){ try{ localStorage.setItem(this.key, JSON.stringify(d)); }catch(e){ showAlert('存储已满，请清理旧数据'); } },
+  get(){ if(!this._d){ this._d=this.load()||{profiles:[],active_profile_id:null,applications:[],current_jd:null}; } return this._d; },
+  flush(){ this.save(this._d); }
+};
+function activeProfile(){ const d=Store.get(); return d.profiles.find(p=>p.id===d.active_profile_id)||null; }
+function genId(){ return 'p'+Date.now()+Math.floor(Math.random()*1000); }
+
+/* ===== API ===== */
+let apiKey=localStorage.getItem('deepseek_api_key')||'';
+async function callApi(systemPrompt,userPrompt,temperature=0.5){
+  if(!apiKey) throw new Error('请先在右上角「API 设置」中配置 DeepSeek API Key');
+  // 关键: 打印请求信息便于调试（不打印 apiKey 全文，只打印前6位）
+  console.log('[CV Agent] 发起请求', { url:'https://api.deepseek.com/v1/chat/completions', model:'deepseek-chat', temperature, keyPrefix:'sk-'+apiKey.slice(3,9), systemLen:systemPrompt.length, userLen:userPrompt.length });
+  let resp;
+  try{
+    resp=await fetch('https://api.deepseek.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},
+      body:JSON.stringify({model:'deepseek-chat',messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}],temperature,stream:false})
+    });
+  }catch(e){
+    // fetch 直接抛错通常是网络断开或 CORS 拦截
+    console.error('[CV Agent] 网络请求失败(可能CORS/断网):', e);
+    throw new Error('网络连接失败（可能是CORS限制或网络不通），请检查网络后重试');
+  }
+  console.log('[CV Agent] 响应状态:', resp.status, resp.statusText);
+  // 读取响应体（错误时也读出来便于定位）
+  if(resp.status===401){ console.error('[CV Agent] 401 Key无效'); throw new Error('API Key 无效（401），请到右上角「API 设置」检查后重新填写'); }
+  if(resp.status===402){ console.error('[CV Agent] 402 余额不足'); throw new Error('API 余额不足（402），请到 DeepSeek 后台充值'); }
+  if(resp.status===429){ console.error('[CV Agent] 429 限流'); throw new Error('请求过于频繁（429），请等待几秒后重试'); }
+  if(resp.status>=500){
+    const t=await resp.text().catch(()=>''); console.error('[CV Agent] 5xx 服务器错误:', resp.status, t);
+    throw new Error('DeepSeek 服务器错误（'+resp.status+'），请稍后重试');
+  }
+  if(!resp.ok){
+    const t=await resp.text().catch(()=>''); console.error('[CV Agent] 其他错误:', resp.status, t);
+    throw new Error('API 错误（'+resp.status+'）：'+t.slice(0,150));
+  }
+  let data; try{ data=await resp.json(); }catch(e){ console.error('[CV Agent] 响应非JSON', e); throw new Error('AI 返回格式异常（非 JSON），请重试'); }
+  const c=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
+  if(!c){ console.error('[CV Agent] 返回内容为空', data); throw new Error('AI 返回内容为空，请重试'); }
+  console.log('[CV Agent] 请求成功, usage=', data.usage);
+  return { content:c, usage:(data.usage?.prompt_tokens||0)+(data.usage?.completion_tokens||0) };
+}
+async function callApiJson(sys,usr,temp){
+  const r=await callApi(sys,usr,temp);
+  let s=r.content.trim();
+  if(s.startsWith('```')) s=s.replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'');
+  try{ return JSON.parse(s); }
+  catch(e){
+    console.error('[CV Agent] JSON 解析失败, 原始内容:', r.content);
+    throw new Error('AI 返回格式异常（JSON 解析失败）。原始内容前 200 字：'+r.content.slice(0,200));
+  }
+}
+
+/* ===== 辅助 ===== */
+function escapeHtml(s){ if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+/* 统一渲染 AI 回复：过滤 <think> + Markdown → HTML */
+function renderAI(text){
+  if(text==null) return '';
+  text=String(text);
+  // 过滤模型偶尔泄露的 <think>...</think>
+  text=text.replace(/<think>[\s\S]*?<\/think>/gi,'');
+  // 残留的未闭合 <think>
+  text=text.replace(/<think>[\s\S]*$/gi,'');
+  // Markdown → HTML（marked 已在 head 引入）
+  try{ return window.marked ? marked.parse(text) : escapeHtml(text); }
+  catch(e){ return escapeHtml(text); }
+}
+function escapeAttr(s){ return escapeHtml(s); }
+function showAlert(msg){ const b=$('alertBox'); b.textContent=msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),4500); }
+function copyText(t){ const ok=()=>showAlert('已复制到剪贴板'); if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(ok).catch(()=>fallbackCopy(t)); } else fallbackCopy(t); }
+function fallbackCopy(t){ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed';ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');ok();}catch(e){showAlert('复制失败，请手动选择');} document.body.removeChild(ta); }
+function loadingHtml(msg){ return '<div class="loading-block"><div class="spinner"></div><div>'+(msg||'AI 正在分析...')+'</div></div>'; }
+function isJdText(t){ if(t.length<100) return false; const kw=['岗位','职责','要求','任职','资格','经验','学历','精通','熟悉','掌握','负责','优先','加分','薪资','月薪','kpi','jd','job','requirement']; return kw.some(k=>t.toLowerCase().includes(k)); }
+
+/* ===== 导航 ===== */
+function switchPage(page){
+  $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
+  ['workbench','profile','applications','interview'].forEach(p=>$('page-'+p).classList.toggle('hidden',p!==page));
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(page==='profile') renderProfilePage();
+  if(page==='applications') renderApplicationsPage();
+  if(page==='interview') renderIvHistory();
+}
+$$('.nav-item').forEach(n=>n.addEventListener('click',()=>switchPage(n.dataset.page)));
+
+/* ===== 底部 Tab ===== */
+function switchTab(tab){
+  $$('.bt-item').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  $$('.bt-panel').forEach(p=>p.classList.remove('active'));
+  $('tab-'+tab).classList.add('active');
+  if(tab==='scripts'&&!state.scriptsLoaded&&activeProfile()&&Store.get().current_jd) loadScripts();
+  if(tab==='resume'&&!state.resumeLoaded&&activeProfile()&&Store.get().current_jd) loadResume();
+  if(tab==='ivprep') renderIvPrep();
+}
+$$('.bt-item').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+
+/* ===== 快捷按钮：触发对话流 + 切 Tab ===== */
+const QUICK_MAP={
+  match:{q:'帮我看看简历哪块最应该改？',tab:'match'},
+  scripts:{q:'帮我生成一段 Boss 直聘的投递话术',tab:'scripts'},
+  resume:{q:'根据这个 JD 帮我再定制一版简历',tab:'resume'},
+  gap:{q:'我的短板在哪？怎么补？',tab:'match'}
+};
+$$('.quick-btn').forEach(b=>b.addEventListener('click',()=>{
+  const a=b.dataset.action; const cfg=QUICK_MAP[a];
+  if(!cfg) return;
+  if(!activeProfile()){ openUploadModal(); return; }
+  if(!Store.get().current_jd){ showAlert('请先粘贴一段 JD 进行分析'); $('chatInput').focus(); return; }
+  if(!apiKey){ showAlert('请先设置 API Key'); openApiSetting(); return; }
+  // 1. 显示用户气泡 + AI 回复（异步）
+  doChat(cfg.q);
+  // 2. 同时切换到对应 Tab
+  switchTab(cfg.tab);
+  // 3. 滚动到聊天区
+  document.querySelector('.chat-card')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}));
+
+/* ===== API 设置 Modal ===== */
+$('apiSettingBtn').addEventListener('click',()=>{ $('apiKeyInput').value=apiKey; $('apiKeyInput').type='password'; $('apiModal').classList.add('open'); });
+$('saveKeyBtn').addEventListener('click',()=>{ const k=$('apiKeyInput').value.trim(); if(!k){ showAlert('请输入有效的 API Key'); return; } apiKey=k; localStorage.setItem('deepseek_api_key',k); $('apiModal').classList.remove('open'); showAlert('API Key 已保存'); });
+$('toggleEyeBtn').addEventListener('click',()=>{ const i=$('apiKeyInput'); i.type=i.type==='password'?'text':'password'; });
+
+/* ===== 通用 Modal 关闭 ===== */
+$$('[data-close]').forEach(b=>b.addEventListener('click',()=>$(''+b.dataset.close).classList.remove('open')));
+$$('.mask').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }));
+
+/* ===== 上传 Modal ===== */
+function openUploadModal(){ $('uploadModal').classList.add('open'); }
+$$('.upload-tab').forEach(t=>t.addEventListener('click',()=>{ $$('.upload-tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); $('utab-paste').classList.toggle('hidden',t.dataset.utab!=='paste'); $('utab-pdf').classList.toggle('hidden',t.dataset.utab!=='pdf'); }));
+const dropZone=$('dropZone'),fileInput=$('fileInput');
+dropZone.addEventListener('click',()=>fileInput.click());
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');if(e.dataTransfer.files.length)handlePdf(e.dataTransfer.files[0]);});
+fileInput.addEventListener('change',e=>{if(e.target.files.length)handlePdf(e.target.files[0]);});
+async function handlePdf(file){
+  if(file.type!=='application/pdf'){ showAlert('仅支持 PDF'); return; }
+  if(file.size>5*1024*1024){ showAlert('文件超过 5MB'); return; }
+  const ps=$('pdfStatus'); ps.classList.remove('hidden'); ps.innerHTML='<div>📄 '+escapeHtml(file.name)+'</div><div class="progress-bar"><div class="progress-fill" id="pdfProg"></div></div><div>解析中...</div>';
+  try{
+    const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise; let text='';
+    for(let i=1;i<=pdf.numPages;i++){ const pg=await pdf.getPage(i); const c=await pg.getTextContent(); text+=c.items.map(x=>x.str).join(' ')+'\n'; $('pdfProg').style.width=(i/pdf.numPages*100)+'%'; }
+    if(!text.trim()) throw new Error('PDF 内容为空，可能是扫描件');
+    ps.innerHTML='<div style="color:var(--green);font-weight:600;">✓ 解析完成，点击「解析并保存」</div>';
+    $('uploadResumeText').value=text.trim();
+    $$('.upload-tab').forEach(x=>x.classList.toggle('active',x.dataset.utab==='paste'));
+    $('utab-paste').classList.remove('hidden'); $('utab-pdf').classList.add('hidden');
+  }catch(err){ ps.innerHTML='<div style="color:var(--red);">✗ '+(err.message||'解析失败')+'，请改用粘贴</div>'; }
+}
+
+$('uploadConfirmBtn').addEventListener('click',async()=>{
+  const text=$('uploadResumeText').value.trim();
+  if(text.length<20){ showAlert('请粘贴或上传有效简历内容'); return; }
+  const name=$('uploadProfileName').value.trim()||'示例档案';
+  $('uploadConfirmBtn').disabled=true; $('uploadConfirmBtn').textContent='解析中...';
+  try{
+    const parsed=await parseResume(text);
+    const profile={ id:genId(), name, resume_text:text, parsed };
+    const d=Store.get(); d.profiles.push(profile); d.active_profile_id=profile.id; Store.flush();
+    $('uploadModal').classList.remove('open');
+    $('uploadResumeText').value='';
+    renderProfileCard(); renderProfileDropdown();
+    showAlert('简历已解析并保存');
+  }catch(e){ showAlert(e.message); }
+  finally{ $('uploadConfirmBtn').disabled=false; $('uploadConfirmBtn').textContent='解析并保存'; }
+});
+
+async function parseResume(text){
+  if(!apiKey) return {name:'',education:[],experience:[],projects:[],skills:[]};
+  const sys='你是简历解析器。解析简历返回严格JSON，不要额外文字或代码块标记：{"name":"姓名","education":[{"school":"","major":"","period":""}],"experience":[{"company":"","role":"","period":""}],"projects":[{"name":"","desc":""}],"skills":["技能1"]}';
+  try{ return await callApiJson(sys,'解析简历：\n'+text.slice(0,3000),0.2); }catch(e){ return {name:'',education:[],experience:[],projects:[],skills:[]}; }
+}
+
+/* ===== 档案卡片渲染 ===== */
+function renderProfileCard(){
+  const p=activeProfile(); const card=$('profileCard');
+  if(!p){
+    card.innerHTML='<div class="pc-row1"><span class="pc-name muted" id="emptyUpload">请先上传简历</span></div><div class="pc-row3"><span class="label">档案</span><button class="btn-reupload" id="emptyUploadBtn">上传简历</button></div>';
+    $('emptyUpload').addEventListener('click',openUploadModal); $('emptyUploadBtn').addEventListener('click',openUploadModal);
+    return;
+  }
+  const ps=p.parsed||{};
+  const edu=ps.education||[], exp=ps.experience||[], proj=ps.projects||[], sk=ps.skills||[];
+  card.innerHTML=`<div class="pc-row1"><span class="pc-name">${escapeHtml(p.parsed?.name||'求职者')}</span><span class="pc-profile-tag" id="pcProfileTag">${escapeHtml(p.name)} <span class="arrow">▼</span></span></div>
+    <div class="pc-stats"><div class="pc-stat"><span class="num">${edu.length}</span><span class="lbl">教育</span></div><div class="pc-stat"><span class="num">${exp.length}</span><span class="lbl">实习/工作</span></div><div class="pc-stat"><span class="num">${proj.length}</span><span class="lbl">项目</span></div><div class="pc-stat"><span class="num">${sk.length}</span><span class="lbl">技能</span></div></div>
+    <div class="pc-row3"><span class="label">档案</span><button class="btn-reupload" id="reuploadBtn">重新上传</button></div>`;
+  $('pcProfileTag').addEventListener('click',()=>{ renderProfileDropdown(); $('profileDropdown').classList.toggle('open'); });
+  $('reuploadBtn').addEventListener('click',openUploadModal);
+}
+
+/* ===== 档案下拉 ===== */
+function renderProfileDropdown(){
+  const d=Store.get(); const dd=$('profileDropdown'); const active=activeProfile();
+  $('profileSelectName').textContent=active?active.name:'示例档案';
+  let html=d.profiles.map(p=>`<div class="dropdown-item ${p.id===d.active_profile_id?'active':''}" data-pid="${p.id}"><span>${escapeHtml(p.name)}</span><span class="mini">${(p.parsed?.skills||[]).length}技能</span></div>`).join('');
+  html+='<div class="dropdown-divider"></div><div class="dropdown-item" data-act="new">+ 新建档案</div><div class="dropdown-item" data-act="del">删除当前档案</div>';
+  dd.innerHTML=html;
+  dd.querySelectorAll('.dropdown-item').forEach(it=>{
+    it.addEventListener('click',()=>{
+      if(it.dataset.pid){ d.active_profile_id=it.dataset.pid; Store.flush(); renderProfileCard(); renderProfileDropdown(); dd.classList.remove('open'); resetAnalysis(); }
+      else if(it.dataset.act==='new'){ dd.classList.remove('open'); openUploadModal(); }
+      else if(it.dataset.act==='del'){ if(!active)return; if(!confirm('删除当前档案？'))return; d.profiles=d.profiles.filter(p=>p.id!==active.id); d.active_profile_id=d.profiles[0]?.id||null; Store.flush(); renderProfileCard(); renderProfileDropdown(); resetAnalysis(); dd.classList.remove('open'); }
+    });
+  });
+}
+$('profileSelectBtn').addEventListener('click',e=>{ e.stopPropagation(); renderProfileDropdown(); $('profileDropdown').classList.toggle('open'); });
+document.addEventListener('click',e=>{ if(!e.target.closest('.dropdown')) $('profileDropdown').classList.remove('open'); });
+
+/* ===== JD 提示条 ===== */
+function renderJdBar(){
+  const d=Store.get(); const bar=$('jdBar');
+  if(d.current_jd){
+    bar.innerHTML=`<div><span class="prefix">已加载岗位：</span><span class="job">${escapeHtml(d.current_jd.company||'')} · ${escapeHtml(d.current_jd.position||'')}</span></div><span class="clear" id="clearJdBtn">清除</span>`;
+    $('clearJdBtn').addEventListener('click',()=>{ d.current_jd=null; Store.flush(); resetAnalysis(); renderJdBar(); });
+  }else{
+    bar.innerHTML=`<span class="hint">粘贴一段 JD 开始分析 →（在下方聊天框粘贴，或去「投递记录」添加）</span>`;
+  }
+}
+function resetAnalysis(){ state.scriptsLoaded=false; state.resumeLoaded=false; state.matchResult=null; renderMatchEmpty(); renderScriptsEmpty(); renderResumeEmpty(); }
+
+/* ===== 聊天框 ===== */
+const chatInput=$('chatInput'),chatHistory=$('chatHistory'),chatSendBtn=$('chatSendBtn');
+let chatSending=false;
+function updateSendBtn(){ chatSendBtn.disabled=chatSending||chatInput.value.trim().length===0; }
+chatInput.addEventListener('input',()=>{ chatInput.style.height='auto'; chatInput.style.height=Math.min(chatInput.scrollHeight,120)+'px'; updateSendBtn(); });
+chatInput.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendChat(); } });
+chatSendBtn.addEventListener('click',sendChat);
+// 对话历史存 localStorage（最近50条）
+const CHAT_KEY='cv_agent_chat';
+function loadChatHistory(){ try{ return JSON.parse(localStorage.getItem(CHAT_KEY))||[]; }catch(e){ return []; } }
+function saveChatMsg(m){ const h=loadChatHistory(); h.push(m); try{ localStorage.setItem(CHAT_KEY,JSON.stringify(h.slice(-50))); }catch(e){} }
+function renderChatFromHistory(){
+  const h=loadChatHistory();
+  if(!h.length){ chatHistory.innerHTML='<div class="welcome-bubble">你好！我是你的 AI 求职助手 🤖<br>上传简历并粘贴 JD，我来帮你分析匹配度、生成话术、定制简历。也可直接在下方提问。</div>'; return; }
+  chatHistory.innerHTML=''; h.forEach(m=>appendMsg(m.role,m.text,false));
+}
+let pendingJdText=null;
+async function sendChat(){
+  if(chatSending) return;
+  const text=chatInput.value.trim();
+  if(!text){ showAlert('请输入内容'); return; }
+  if(!apiKey){ showAlert('请先设置 API Key'); openApiSetting(); return; }
+  if(!activeProfile()){ showAlert('请先上传简历'); openUploadModal(); return; }
+  // JD 检测
+  if(isJdText(text)&&!pendingJdText){
+    pendingJdText=text;
+    $('jdDetectWrap').innerHTML=`<div class="jd-detect"><span>检测到 JD 文本，是否开始新的岗位分析？</span><div><button class="no" id="jdNoBtn">否</button><button class="yes" id="jdYesBtn">开始分析</button></div></div>`;
+    $('jdYesBtn').addEventListener('click',()=>{ $('jdDetectWrap').innerHTML=''; const t=pendingJdText; pendingJdText=null; chatInput.value=''; chatInput.style.height='auto'; updateSendBtn(); analyzeNewJd(t); });
+    $('jdNoBtn').addEventListener('click',()=>{ $('jdDetectWrap').innerHTML=''; pendingJdText=null; chatInput.value=''; chatInput.style.height='auto'; updateSendBtn(); doChat(text); });
+    return;
+  }
+  chatInput.value=''; chatInput.style.height='auto'; updateSendBtn();
+  doChat(text);
+}
+function appendMsg(role,text,persist=true){
+  const div=document.createElement('div'); div.className='msg '+role;
+  // AI 气泡走 Markdown 渲染，用户气泡走纯文本转义
+  const bubbleHtml = role==='ai' ? renderAI(text) : escapeHtml(text);
+  div.innerHTML=`<div class="msg-role">${role==='ai'?'🤖 AI 助手':'你'}</div><div class="msg-bubble">${bubbleHtml}</div>`;
+  chatHistory.appendChild(div); chatHistory.scrollTop=chatHistory.scrollHeight;
+  if(persist) saveChatMsg({role,text});
+}
+function appendTyping(){
+  const div=document.createElement('div'); div.className='msg ai'; div.id='typingMsg';
+  div.innerHTML=`<div class="msg-role">🤖 AI 助手 正在思考...</div><div class="msg-bubble"><span class="typing"><span></span><span></span><span></span></span></div>`;
+  chatHistory.appendChild(div); chatHistory.scrollTop=chatHistory.scrollHeight;
+}
+async function doChat(text){
+  appendMsg('user',text); appendTyping(); chatSending=true; updateSendBtn();
+  const p=activeProfile(); const jd=Store.get().current_jd;
+  let attachContext='';
+  if(chatAttachment){
+    if(chatAttachment.type==='text') attachContext='\n\n【附件内容：'+chatAttachment.name+'】\n'+chatAttachment.text.slice(0,1500);
+    else if(chatAttachment.type==='image') attachContext='\n\n【用户上传了图片：'+chatAttachment.name+'，当前模型不支持图片识别，请提醒用户改用文字描述】';
+  }
+  const sys=`你是 CV Agent 求职助手。基于用户简历和当前JD回答问题。简洁专业，必要时给具体建议。\n简历摘要：${p.resume_text.slice(0,1200)}\n当前JD：${jd?(jd.company+' '+jd.position+' '+jd.jd_text.slice(0,600)):'无'}${attachContext}`;
+  try{
+    const r=await callApi(sys,text,0.7);
+    $('typingMsg')?.remove();
+    appendMsg('ai',r.content);
+  }catch(e){ $('typingMsg')?.remove(); appendMsg('ai','出错：'+e.message); }
+  finally{ chatSending=false; updateSendBtn(); clearAttachment(); }
+}
+/* ===== 附件上传 ===== */
+let chatAttachment=null;
+$('chatAttachBtn').addEventListener('click',()=>$('chatFileInput').click());
+$('chatFileInput').addEventListener('change',e=>{ if(e.target.files.length) handleChatFile(e.target.files[0]); e.target.value=''; });
+async function handleChatFile(file){
+  const name=file.name; const area=$('chatAttachArea');
+  if(file.type==='application/pdf'){
+    try{
+      const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise; let text='';
+      for(let i=1;i<=pdf.numPages;i++){ const pg=await pdf.getPage(i); const c=await pg.getTextContent(); text+=c.items.map(x=>x.str).join(' ')+'\n'; }
+      if(!text.trim()){ showAlert('PDF 内容为空（可能是扫描件）'); return; }
+      chatAttachment={type:'text',text,name};
+      area.innerHTML=`<span class="chat-attach-tag">📄 ${escapeHtml(name)} <span class="rm" id="rmAttach">✕</span></span>`;
+      $('rmAttach').addEventListener('click',clearAttachment);
+      // 若无档案且文本较长，提示保存为简历
+      if(!activeProfile()&&text.length>200&&confirm('检测到简历内容，是否保存为新档案？')){ await saveAttachmentAsProfile(name,text); }
+      else { showAlert('PDF 已解析，发送消息时将作为上下文提交'); }
+    }catch(e){ showAlert('PDF 解析失败：'+e.message); }
+  }else if(file.type.startsWith('image/')){
+    const reader=new FileReader();
+    reader.onload=()=>{ chatAttachment={type:'image',dataUrl:reader.result,name};
+      area.innerHTML=`<span class="chat-attach-tag">🖼 ${escapeHtml(name)} <span class="rm" id="rmAttach">✕</span></span><div class="img-preview-wrap"><img src="${reader.result}"></div>`;
+      $('rmAttach').addEventListener('click',clearAttachment);
+      showAlert('图片已附加。注意：当前模型不支持图片识别，建议改用文字。');
+    };
+    reader.readAsDataURL(file);
+  }else if(/\.docx?$/i.test(name)){
+    showAlert('Word 文档请先另存为 PDF 或直接粘贴文本');
+  }else{ showAlert('不支持的文件类型'); }
+}
+function clearAttachment(){ chatAttachment=null; $('chatAttachArea').innerHTML=''; }
+async function saveAttachmentAsProfile(name,text){
+  const parsed=await parseResume(text);
+  const profile={ id:genId(), name:name.replace(/\.pdf$/i,''), resume_text:text, parsed };
+  const d=Store.get(); d.profiles.push(profile); d.active_profile_id=profile.id; Store.flush();
+  renderProfileCard(); renderProfileDropdown(); showAlert('已保存为新档案');
+}
+
+/* ===== JD 分析（匹配分析） ===== */
+async function analyzeNewJd(jdText){
+  if(!apiKey){ showAlert('请先设置 API Key'); openApiSetting(); return; }
+  if(!activeProfile()){ showAlert('请先上传简历'); openUploadModal(); return; }
+  switchTab('match');
+  const p=activeProfile();
+  $('tab-match').innerHTML=loadingHtml('正在分析匹配度...');
+  // 第一步: 抽取公司/岗位（失败不阻断，用默认值继续）
+  let company='目标公司', position='目标岗位';
+  try{
+    const meta=await callApiJson('从JD中提取公司名和岗位名，返回严格JSON：{"company":"","position":""}','JD：\n'+jdText.slice(0,800),0.1);
+    if(meta&&meta.company) company=meta.company;
+    if(meta&&meta.position) position=meta.position;
+    console.log('[CV Agent] 公司岗位抽取成功:', company, position);
+  }catch(e){ console.warn('[CV Agent] 公司岗位抽取失败，使用默认值继续:', e.message); }
+  // 第二步: 真正的匹配分析
+  try{
+    Store.get().current_jd={ company, position, jd_text:jdText }; Store.flush();
+    renderJdBar();
+    const r=await callMatch(p.resume_text,jdText);
+    Store.get().current_jd.match_result=r; Store.flush();
+    state.matchResult=r; state.scriptsLoaded=false; state.resumeLoaded=false;
+    renderMatch(r);
+    appendMsg('ai',`已分析「${company} · ${position}」的匹配度：${r.score}/100。可在下方追问，或切换 Tab 查看话术/定制简历。`);
+  }catch(e){
+    console.error('[CV Agent] 匹配分析失败:', e);
+    renderMatchError(e.message, { company, position, jdLen:jdText.length, resumeLen:p.resume_text.length, apiKeyPrefix:'sk-'+apiKey.slice(3,9) });
+  }
+}
+function openApiSetting(){ $('apiKeyInput').value=apiKey; $('apiKeyInput').type='password'; $('apiModal').classList.add('open'); }
+// 渲染匹配分析失败 + 可折叠调试信息
+function renderMatchError(msg, ctx){
+  const ctxStr = ctx ? Object.entries(ctx).map(([k,v])=>k+' = '+v).join('\n') : '';
+  $('tab-match').innerHTML=
+    '<div class="empty" style="color:var(--red);">✗ 匹配分析失败：'+escapeHtml(msg)+'</div>'+
+    '<details style="margin-top:12px;font-size:12px;color:var(--t3);">'+
+      '<summary>查看调试信息</summary>'+
+      '<div style="background:#F9FAFB;border-radius:8px;padding:10px 12px;margin-top:8px;white-space:pre-wrap;line-height:1.7;">'+
+        '错误信息：'+escapeHtml(msg)+'\n\n'+
+        '上下文：\n'+escapeHtml(ctxStr)+'\n\n'+
+        '时间：'+new Date().toLocaleString()+'\n\n'+
+        '排查建议：\n'+
+        '1. 打开浏览器控制台(F12)→Console 查看完整日志\n'+
+        '2. 确认 API Key 有效（到 platform.deepseek.com 检查余额/状态）\n'+
+        '3. 若是 429 限流，等待几秒后点下方重试\n'+
+        '4. 若是 CORS/网络错误，检查网络连接\n'+
+      '</div>'+
+    '</details>'+
+    '<div style="margin-top:16px;display:flex;gap:8px;">'+
+      '<button class="btn-primary btn-sm" id="retryMatchBtn">重试分析</button>'+
+      '<button class="btn-outline btn-sm" id="openApiOnErrorBtn">检查 API Key</button>'+
+    '</div>';
+  $('retryMatchBtn').addEventListener('click',()=>{ const jd=Store.get().current_jd; analyzeNewJd(jd?jd.jd_text:''); });
+  $('openApiOnErrorBtn').addEventListener('click',openApiSetting);
+}
+async function callMatch(resume,jd){
+  const sys=`你是资深HR和岗位匹配专家。分析简历与JD匹配度。返回严格JSON，不要额外文字或代码块标记：
+{"score":0-100整数,"job_title":"岗位名","matched":[{"title":"","detail":""}],"unmatched":[{"title":"","detail":"","severity":"high|medium"}],"suggestions":["具体建议"]}
+要求：matched最多6条，unmatched最多6条，suggestions 3-5条具体到措辞修改。severity:high=硬性门槛,medium=建议补齐。`;
+  return await callApiJson(sys,'简历：\n'+resume.slice(0,2500)+'\n\nJD：\n'+jd.slice(0,1500),0.3);
+}
+function renderMatchEmpty(){ $('tab-match').innerHTML='<div class="empty">粘贴一段 JD 开始匹配分析</div>'; }
+function renderMatch(r){
+  if(!r){ renderMatchEmpty(); return; }
+  const sevBadge=s=>s==='high'?'<span class="sev high">硬性门槛</span>':s==='medium'?'<span class="sev medium">建议补齐</span>':'';
+  $('tab-match').innerHTML=`
+    <div class="match-hero"><div><span class="match-score" id="scoreNum">0</span><span class="match-suffix">/100</span></div><div class="match-job">${escapeHtml(r.job_title||Store.get().current_jd?.position||'')}</div></div>
+    <div class="match-grid">
+      <div class="match-tile"><div class="match-tile-head">✅ 适配点</div><div class="count">${(r.matched||[]).length} 项</div></div>
+      <div class="match-tile"><div class="match-tile-head">❌ 不适配点</div><div class="count">${(r.unmatched||[]).length} 项</div></div>
+    </div>
+    <div class="match-list-label">适配点</div>
+    ${(r.matched||[]).map(m=>`<div class="match-item"><span class="ico">✅</span><div class="match-item-body"><div class="t">${escapeHtml(m.title)}</div><div class="d">${escapeHtml(m.detail||'')}</div></div></div>`).join('')||'<div class="empty">无</div>'}
+    <div class="match-list-label">不适配点</div>
+    ${(r.unmatched||[]).map(m=>`<div class="match-item"><span class="ico">❌</span><div class="match-item-body"><div class="t">${escapeHtml(m.title)}${sevBadge(m.severity)}</div><div class="d">${escapeHtml(m.detail||'')}</div></div></div>`).join('')||'<div class="empty">无</div>'}
+    <div class="match-list-label">关键建议</div>
+    ${(r.suggestions||[]).map(s=>`<div class="suggestion-item">💡 ${escapeHtml(s)}</div>`).join('')}
+    <div style="margin-top:16px;"><button class="btn-outline btn-sm" id="rematchBtn">重新分析</button></div>`;
+  // 计数动画
+  const target=r.score||0; const el=$('scoreNum'); let cur=0; const step=Math.max(1,Math.ceil(target/30));
+  const timer=setInterval(()=>{ cur+=step; if(cur>=target){cur=target;clearInterval(timer);} el.textContent=cur; },30);
+  $('rematchBtn').addEventListener('click',()=>{ const jd=Store.get().current_jd; if(jd) analyzeNewJd(jd.jd_text); });
+}
+
+/* ===== 话术 Tab ===== */
+function renderScriptsEmpty(){ $('tab-scripts').innerHTML='<div class="empty">先分析 JD 后，点击下方生成话术</div>'; }
+let scriptsData=null,activeScript='boss';
+let scriptStyle='稳重专业';  // 风格：热情亲和 | 稳重专业 | 简洁直接
+const SCRIPT_STYLES=['热情亲和','稳重专业','简洁直接'];
+const STYLE_SUFFIX={
+  '热情亲和':'\n\n语气要求：热情、有活力、适合初创/小公司。',
+  '稳重专业':'\n\n语气要求：稳重、有逻辑、适合大厂/外企/金融。',
+  '简洁直接':'\n\n语气要求：极简、不啰嗦、适合技术岗/工程师文化。'
+};
+$('tab-scripts'); // 占位
+function renderScripts(){
+  const data=scriptsData||{};
+  const tabs=[['boss','Boss直聘'],['email','邮件投递'],['cover_letter','英文Cover Letter']];
+  const cur=data[activeScript]||{content:'',explanation:''};
+  $('tab-scripts').innerHTML=`
+    <div class="sub-tabs">${tabs.map(t=>`<div class="sub-tab ${activeScript===t[0]?'active':''}" data-st="${t[0]}">${t[1]}</div>`).join('')}</div>
+    <div class="mode-row" style="align-items:center;">
+      <span style="font-size:13px;color:var(--t2);">风格：</span>
+      ${SCRIPT_STYLES.map(s=>`<button class="mode-btn ${scriptStyle===s?'active':''}" data-sstyle="${s}">${s}</button>`).join('')}
+    </div>
+    <div class="script-card"><div class="script-content">${escapeHtml(cur.content||'')}</div><div style="margin-top:12px;"><button class="btn-copy" data-copy="${escapeAttr(cur.content||'')}">一键复制</button></div></div>
+    ${cur.explanation?`<div class="script-explain">${escapeHtml(cur.explanation)}</div>`:''}
+    <div style="margin-top:16px;"><button class="btn-outline btn-sm" id="regenScriptsBtn">重新生成</button></div>`;
+  $$('#tab-scripts .sub-tab').forEach(t=>t.addEventListener('click',()=>{ activeScript=t.dataset.st; renderScripts(); }));
+  $$('#tab-scripts [data-sstyle]').forEach(b=>b.addEventListener('click',()=>{ scriptStyle=b.dataset.sstyle; loadScripts(); }));
+  $$('#tab-scripts [data-copy]').forEach(b=>b.addEventListener('click',()=>{ copyText(b.dataset.copy); const old=b.textContent; b.textContent='已复制 ✓'; b.classList.add('copied'); setTimeout(()=>{b.textContent=old;b.classList.remove('copied');},2000); }));
+  $('regenScriptsBtn').addEventListener('click',loadScripts);
+}
+async function loadScripts(){
+  const p=activeProfile(); const jd=Store.get().current_jd;
+  if(!p||!jd){ renderScriptsEmpty(); return; }
+  $('tab-scripts').innerHTML=loadingHtml('正在生成投递话术（'+scriptStyle+'风格）...');
+  try{
+    const sys=`你是一位资深 HR 沟通专家，擅长帮候选人写投递话术。基于候选人简历和岗位 JD 生成 3 种投递话术，返回严格 JSON，不要额外文字或代码块标记：
+{"boss":{"content":"Boss直聘开场白正文","explanation":"为什么这样写"},"email":{"content":"邮件投递正文","explanation":"..."},"cover_letter":{"content":"英文Cover Letter正文","explanation":"..."}}
+
+## 通用要求（三种话术都必须遵守）
+1. 必须引用简历里的真实经历/项目/技能，绝不编造
+2. 精准匹配 JD：从简历挑 1-2 个最相关的点，直接对应 JD 关键词
+3. 严禁套话：禁止"我对贵公司非常感兴趣""希望有机会加入贵公司""贵公司平台很大"等空洞表达
+4. 必须有具体信息：数字、项目名、工具名、学校、公司名
+5. 突出与 JD 最匹配的技能
+
+## Boss 直聘开场白（boss）专项要求
+- 第一句自报家门：学校/公司 + 年级/身份 + 姓名（如"广东工业大学大三的 XXX"）
+- 第二句精准匹配 JD：从简历挑 1-2 个最相关项目/技能，直接对应 JD 关键词
+- 第三句表达求职动机：为什么是这个公司+这个岗位（具体，不要空话）
+- 结尾礼貌收尾，主动询问是否方便进一步沟通
+- 总字数 ≤ 100 字，信息密度高，每句话都有信息
+
+## 好话术示例（请模仿这个语气和具体度）
+示例 1（应聘字节 AI 产品实习）：
+"您好学长/HR 老师，我是广东工业大学大三的 XXX，看到字节的 AI 产品实习 JD 里提到要'设计 Prompt 模板并评估输出质量'，我上个月刚用 Dify 搭了一个 7 节点的 AI 学习搭子工作流（开始→知识检索→IF/ELSE→双 LLM→输出），实现了'根据剩余天数自动切换极限突击/稳步复习两套策略'。很希望和您聊聊，看能否约个面试。打扰了！"
+
+示例 2（应聘某 AI 创业公司）：
+"您好，我是 XXX，应聘贵司的 AI 产品岗。我注意到 JD 里强调'AI 工具落地能力'，我最近一周用 Trae Vibe Coding + DeepSeek API 从零搭了一个 CV Agent 求职工作台，已上线可演示。对 AI 产品有天然好奇心，希望能加入团队一起做点东西。"
+
+## 邮件投递（email）专项要求
+- 正式邮件格式：称呼 + 自我介绍 + 匹配点（2-3 个具体经历对应 JD）+ 结尾
+- 200-300 字，含具体项目/数字
+- 主题清晰，附件提示
+
+## 英文 Cover Letter（cover_letter）专项要求
+- 纯英文，3 段，150-200 词
+- 第一段：申请岗位 + 信息来源 + 一句亮点
+- 第二段：2-3 个最相关经历，对应 JD
+- 第三段：动机 + 结尾
+
+${STYLE_SUFFIX[scriptStyle]||''}`;
+    scriptsData=await callApiJson(sys,'简历：\n'+p.resume_text.slice(0,1800)+'\n\nJD：\n'+jd.jd_text.slice(0,1000),0.7);
+    state.scriptsLoaded=true; renderScripts();
+  }catch(e){ showAlert(e.message); $('tab-scripts').innerHTML='<div class="empty">生成失败，请重试</div>'; }
+}
+
+/* ===== 定制简历 Tab ===== */
+function renderResumeEmpty(){ $('tab-resume').innerHTML='<div class="empty">先分析 JD 后，点击下方生成定制简历</div>'; }
+let resumeMode='rewrite',resumeData=null;
+/* 文件名安全化 */
+function safeFileName(s){ return (s||'').replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'').slice(0,30); }
+function buildResumeFileName(ext){
+  const p=activeProfile(); const jd=Store.get().current_jd;
+  const name=safeFileName(p?.parsed?.name||'候选人');
+  const pos=safeFileName(jd?.position||resumeData?.target_job||'定制岗位');
+  return name+'-'+pos+'-定制简历.'+ext;
+}
+/* 导出 Word（用 docx 库；加载失败时降级为 .md） */
+async function exportResumeWord(markdown){
+  if(!window.docx){ showAlert('Word 导出组件未加载，已改下载 Markdown'); downloadResumeMd(markdown); return; }
+  try{
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = window.docx;
+    const lines=(markdown||'').split(/\r?\n/);
+    const children=lines.map(line=>{
+      const t=line.trim();
+      if(!t) return new Paragraph({ text:'' });
+      let m=t.match(/^(#{1,3})\s+(.*)$/);
+      if(m){
+        const level=m[1].length;
+        const heading = level===1?HeadingLevel.HEADING_1:level===2?HeadingLevel.HEADING_2:HeadingLevel.HEADING_3;
+        return new Paragraph({ text:m[2], heading, spacing:{after:120} });
+      }
+      // 列表项
+      if(/^[-*]\s+/.test(t)) return new Paragraph({ text:t.replace(/^[-*]\s+/,''), bullet:{level:0}, spacing:{after:40} });
+      if(/^\d+\.\s+/.test(t)) return new Paragraph({ text:t.replace(/^\d+\.\s+/,''), numbering:{reference:'num',level:0}, spacing:{after:40} });
+      // 加粗 **xxx**
+      const parts=[]; let rest=t; let idx=0;
+      const re=/\*\*([^*]+)\*\*/g; let last=0; let mm;
+      while((mm=re.exec(rest))){ if(mm.index>last) parts.push(new TextRun(rest.slice(last,mm.index))); parts.push(new TextRun({text:mm[1],bold:true})); last=mm.index+mm[0].length; }
+      if(last<rest.length) parts.push(new TextRun(rest.slice(last)));
+      return new Paragraph({ children:parts.length?parts:[new TextRun(t)], spacing:{after:60} });
+    });
+    const doc=new Document({ sections:[{ properties:{}, children }] });
+    const blob=await Packer.toBlob(doc);
+    if(window.saveAs){ saveAs(blob, buildResumeFileName('docx')); }
+    else { const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=buildResumeFileName('docx'); document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u); }
+    showAlert('Word 已导出');
+  }catch(e){ console.error('[CV Agent] Word 导出失败', e); showAlert('Word 导出失败：'+e.message+'，已改下载 Markdown'); downloadResumeMd(markdown); }
+}
+/* 导出 PDF（用 html2pdf.js；加载失败时降级为 .md） */
+function exportResumePDF(markdown){
+  if(!window.html2pdf){ showAlert('PDF 导出组件未加载，已改下载 Markdown'); downloadResumeMd(markdown); return; }
+  const wrap=document.createElement('div');
+  try{ wrap.innerHTML=marked.parse(markdown||''); }catch(e){ wrap.textContent=markdown||''; }
+  wrap.style.cssText='padding:24px 30px;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:13px;line-height:1.7;color:#111827;';
+  // 内联样式美化
+  wrap.querySelectorAll('h1').forEach(h=>h.style.cssText='font-size:22px;font-weight:700;margin:12px 0 8px;');
+  wrap.querySelectorAll('h2').forEach(h=>h.style.cssText='font-size:16px;font-weight:700;margin:10px 0 6px;border-bottom:1px solid #E5E7EB;padding-bottom:4px;');
+  wrap.querySelectorAll('h3').forEach(h=>h.style.cssText='font-size:14px;font-weight:600;margin:8px 0 4px;');
+  wrap.querySelectorAll('strong').forEach(s=>s.style.color='#2563EB');
+  document.body.appendChild(wrap);
+  html2pdf().set({ margin:10, filename:buildResumeFileName('pdf'), html2canvas:{scale:2}, jsPDF:{unit:'mm',format:'a4'} }).from(wrap).save().then(()=>{ document.body.removeChild(wrap); showAlert('PDF 已导出'); }).catch(e=>{ document.body.removeChild(wrap); console.error('[CV Agent] PDF 导出失败', e); showAlert('PDF 导出失败：'+e.message+'，已改下载 Markdown'); downloadResumeMd(markdown); });
+}
+function downloadResumeMd(markdown){ const blob=new Blob([markdown||''],{type:'text/markdown'}); const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=buildResumeFileName('md'); document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u); }
+function renderResume(){
+  if(!resumeData){ renderResumeEmpty(); return; }
+  const d=resumeData;
+  const p=activeProfile(); const jd=Store.get().current_jd;
+  $('tab-resume').innerHTML=`
+    <div class="mode-row"><button class="mode-btn ${resumeMode==='rewrite'?'active':''}" data-rm="rewrite">基于现有改写</button><button class="mode-btn ${resumeMode==='framework'?'active':''}" data-rm="framework">从零生成框架</button></div>
+    <div class="match-list-label">📄 原版简历（只读，不会被修改）</div>
+    <div style="background:#F9FAFB;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="font-size:13px;color:var(--t2);">
+        <div style="font-weight:600;color:var(--t1);">📝 ${escapeHtml(p?.name||'我的档案')}</div>
+        <div style="margin-top:4px;">原版简历文本 · ${p?(p.resume_text.length+' 字'):'无'}${p?.parsed?.name?' · '+escapeHtml(p.parsed.name):''}</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-outline btn-sm" id="viewRawResumeBtn">查看原文</button>
+        <button class="btn-outline btn-sm" id="reuploadFromResumeBtn">重新上传</button>
+      </div>
+    </div>
+    <div class="target-row"><div class="target-input"><label>目标岗位</label><input type="text" value="${escapeAttr(d.target_job||'')}" readonly></div><div class="target-input"><label>当前岗位</label><input type="text" value="${escapeAttr(d.current_job||'')}" readonly></div></div>
+    ${(d.common_skills&&d.common_skills.length)?`<div class="common-skills">${d.common_skills.map(s=>`<span class="skill-tag">${escapeHtml(s)}</span>`).join('')}</div>`:''}
+    <div class="match-list-label">重写后的定制简历（针对「${escapeAttr(jd?.company||'')} · ${escapeAttr(jd?.position||'')}」）</div>
+    <div class="resume-preview" id="resumePreview"></div>
+    <div class="action-row">
+      <button class="btn-copy" data-copy="${escapeAttr(d.resume_markdown||'')}">一键复制</button>
+      <button class="btn-primary btn-sm" id="dlWordBtn">⬇ 导出 Word</button>
+      <button class="btn-primary btn-sm" id="dlPdfBtn">⬇ 导出 PDF</button>
+      <button class="btn-outline btn-sm" id="dlMdBtn">下载 Markdown</button>
+    </div>
+    ${d.explanation?`<div class="script-explain">${escapeHtml(d.explanation)}</div>`:''}
+    ${(d.suggested_additions&&d.suggested_additions.length)?`<div class="match-list-label">建议补充</div>${d.suggested_additions.map(s=>`<div class="suggestion-item">📝 <strong>${escapeHtml(s.section||'')}：</strong>${escapeHtml(s.content||'')}</div>`).join('')}`:''}
+    <div style="margin-top:16px;"><button class="btn-outline btn-sm" id="regenResumeBtn">重新生成</button></div>`;
+  try{ $('resumePreview').innerHTML=marked.parse(d.resume_markdown||''); }catch(e){ $('resumePreview').textContent=d.resume_markdown||''; }
+  $$('#tab-resume [data-rm]').forEach(b=>b.addEventListener('click',()=>{ resumeMode=b.dataset.rm; loadResume(); }));
+  $$('#tab-resume [data-copy]').forEach(b=>b.addEventListener('click',()=>{ copyText(b.dataset.copy); const o=b.textContent; b.textContent='已复制 ✓'; b.classList.add('copied'); setTimeout(()=>{b.textContent=o;b.classList.remove('copied');},2000); }));
+  $('viewRawResumeBtn').addEventListener('click',()=>{ if(!p) return; const w=window.open('','_blank'); if(!w){ showAlert('请允许弹窗查看原文'); return; } w.document.write('<pre style="white-space:pre-wrap;font-family:sans-serif;padding:20px;">'+escapeHtml(p.resume_text)+'</pre>'); w.document.close(); });
+  $('reuploadFromResumeBtn').addEventListener('click',openUploadModal);
+  $('dlWordBtn').addEventListener('click',()=>exportResumeWord(d.resume_markdown||''));
+  $('dlPdfBtn').addEventListener('click',()=>exportResumePDF(d.resume_markdown||''));
+  $('dlMdBtn').addEventListener('click',()=>{ downloadResumeMd(d.resume_markdown||''); showAlert('已下载 Markdown'); });
+  $('regenResumeBtn').addEventListener('click',loadResume);
+}
+async function loadResume(){
+  const p=activeProfile(); const jd=Store.get().current_jd;
+  if(!p||!jd){ renderResumeEmpty(); return; }
+  $('tab-resume').innerHTML=loadingHtml('正在生成定制简历...');
+  try{
+    const sys=`你是资深简历优化师和转行顾问。根据简历和JD生成定制简历。返回严格JSON，不要额外文字或代码块标记：
+{"mode":"${resumeMode}","target_job":"","current_job":"","common_skills":["共有技能"],"resume_markdown":"完整Markdown简历","explanation":"改写说明","suggested_additions":[{"section":"","content":""}]}
+要求：
+1. 识别当前岗位与目标岗位的共有技能，重新包装现有经历突出相关性
+2. JD要求但简历没有的，在对应位置插入【建议补充：XXX】，不伪造经历
+3. STAR法则描述，补充量化数据
+4. 技能关键词与JD一致
+5. 跨岗时工作经历标题标注转换方向（如"运营专员（转AI产品方向）"）
+6. mode=${resumeMode}（framework模式缺失项标注【建议补充】）`;
+    resumeData=await callApiJson(sys,'简历：\n'+p.resume_text.slice(0,2500)+'\n\nJD：\n'+jd.jd_text.slice(0,1200),resumeMode==='framework'?0.5:0.3);
+    state.resumeLoaded=true; renderResume();
+  }catch(e){ showAlert(e.message); $('tab-resume').innerHTML='<div class="empty">生成失败，请重试</div>'; }
+}
+
+/* ===== 面试准备 Tab ===== */
+let ivPrepData=null;
+function renderIvPrep(){
+  const p=activeProfile(); const jd=Store.get().current_jd;
+  if(!p){ $('tab-ivprep').innerHTML='<div class="empty">请先上传简历</div>'; return; }
+  if(ivPrepData){
+    renderIvPrepContent(ivPrepData);
+  }else{
+    $('tab-ivprep').innerHTML=`<div class="empty">基于简历和 JD 生成面试可能问到的问题与参考答案<br><button class="btn-primary btn-sm" id="genIvBtn" style="margin-top:12px;">${jd?'生成面试问题':'请先粘贴 JD'}</button></div>`;
+    const gb=$('genIvBtn'); if(gb&&jd) gb.addEventListener('click',loadIvPrep);
+  }
+}
+async function loadIvPrep(){
+  const p=activeProfile(); const jd=Store.get().current_jd;
+  if(!p||!jd){ renderIvPrep(); return; }
+  $('tab-ivprep').innerHTML=loadingHtml('正在生成面试问题...');
+  try{
+    const sys=`你是资深面试官。根据简历和JD生成面试可能问到的问题与参考答案。返回严格JSON，不要额外文字或代码块标记：
+{"questions":[{"category":"技术/项目/行为/HR","question":"问题","key_points":"考察点","answer":"参考答案要点"}]}
+生成 6-8 个问题，覆盖技术深挖、项目细节、行为问题、HR 常见问题。answer 要结合简历真实经历。`;
+    ivPrepData=await callApiJson(sys,'简历：\n'+p.resume_text.slice(0,1800)+'\n\nJD：\n'+jd.jd_text.slice(0,1000),0.6);
+    renderIvPrepContent(ivPrepData);
+  }catch(e){ showAlert(e.message); $('tab-ivprep').innerHTML='<div class="empty">生成失败，<button class="btn-outline btn-sm" id="retryIvBtn">重试</button></div>'; $('retryIvBtn')?.addEventListener('click',loadIvPrep); }
+}
+function renderIvPrepContent(data){
+  const cats={技术:'#2563EB',项目:'#10B981',行为:'#F59E0B',HR:'#8B5CF6'};
+  $('tab-ivprep').innerHTML=`<div class="match-list-label">面试问题（共 ${(data.questions||[]).length} 题）</div>
+    ${(data.questions||[]).map((q,i)=>`<div class="script-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;"><div style="flex:1;"><span class="sev" style="background:${cats[q.category]||'#F3F4F6'}22;color:${cats[q.category]||'#6B7280'};">${escapeHtml(q.category||'')}</span> <strong style="margin-left:6px;">${escapeHtml(q.question||'')}</strong></div><button class="btn-outline btn-sm" data-ivcopy="${escapeAttr(q.answer||'')}">复制答案</button></div><div class="script-explain" style="margin-top:8px;">💡 考察点：${escapeHtml(q.key_points||'')}</div><div style="margin-top:6px;font-size:13px;line-height:1.7;">${escapeHtml(q.answer||'')}</div></div>`).join('')}
+    <div style="margin-top:16px;"><button class="btn-outline btn-sm" id="regenIvBtn">重新生成</button> <button class="btn-outline btn-sm" id="simIvBtn">模拟面试对话</button></div>`;
+  $$('#tab-ivprep [data-ivcopy]').forEach(b=>b.addEventListener('click',()=>{ copyText(b.dataset.ivcopy); const o=b.textContent; b.textContent='已复制 ✓'; setTimeout(()=>b.textContent=o,2000); }));
+  $('regenIvBtn').addEventListener('click',loadIvPrep);
+  $('simIvBtn').addEventListener('click',openMockSetup);
+}
+
+/* ===== 模拟面试（完整流程：开始→逐题对话→综合反馈→总结） ===== */
+const MOCK_IV_KEY='cv_agent_mock_iv_sessions';
+function loadMockIvSessions(){ try{ return JSON.parse(localStorage.getItem(MOCK_IV_KEY))||[]; }catch(e){ return []; } }
+function saveMockIvSessions(h){ try{ localStorage.setItem(MOCK_IV_KEY,JSON.stringify(h.slice(-20))); }catch(e){} }
+
+let mockIv=null; // 当前会话：{position,count,difficulty,questions,answers,idx,phase,feedback}
+
+function openMockSetup(){
+  if(!activeProfile()){ showAlert('请先上传简历'); openUploadModal(); return; }
+  if(!apiKey){ showAlert('请先设置 API Key'); openApiSetting(); return; }
+  const jd=Store.get().current_jd;
+  $('mockPosition').value = jd?.position || '';
+  $('mockSetupModal').classList.add('open');
+}
+$('mockStartBtn').addEventListener('click',()=>{
+  const position=$('mockPosition').value.trim() || '目标岗位';
+  const count=parseInt($('mockQCount').value,10)||5;
+  const difficulty=$('mockDifficulty').value;
+  $('mockSetupModal').classList.remove('open');
+  startMockInterview(position,count,difficulty);
+});
+
+async function startMockInterview(position,count,difficulty){
+  mockIv={ position, count, difficulty, questions:[], answers:[], idx:0, phase:'dialog' };
+  $('mockOverlayTitle').textContent=position;
+  $('mockOverlayProgress').textContent='第 0 / '+count+' 题';
+  $('mockBody').innerHTML='';
+  $('mockInputBar').style.display='';
+  $('mockOverlay').classList.add('open');
+  $('mockInput').value=''; $('mockInput').focus();
+  await mockAskNext();
+}
+function mockClose(){
+  if(mockIv && mockIv.phase==='dialog' && mockIv.answers.length>0){
+    if(!confirm('面试尚未完成，退出将不保存本次结果。确定退出？')) return;
+  }
+  $('mockOverlay').classList.remove('open');
+  $('mockInputBar').style.display='';
+  mockIv=null;
+}
+$('mockCloseBtn').addEventListener('click',mockClose);
+function mockAppend(role,text){
+  const body=$('mockBody');
+  if(role==='ai'){
+    const div=document.createElement('div'); div.className='mock-q-bubble';
+    div.innerHTML='<div class="role">🤖 面试官</div><div class="qtxt">'+renderAI(text)+'</div>';
+    body.appendChild(div);
+  }else{
+    const div=document.createElement('div'); div.className='mock-a-bubble';
+    div.innerHTML='<div class="role">我</div><div>'+escapeHtml(text)+'</div>';
+    body.appendChild(div);
+  }
+  body.scrollTop=body.scrollHeight;
+}
+function mockAppendLoading(label){
+  const body=$('mockBody');
+  const div=document.createElement('div'); div.className='mock-q-bubble'; div.id='mockLoading';
+  div.innerHTML='<div class="role">🤖 面试官 '+(label||'思考中...')+'</div><div class="qtxt"><span class="typing"><span></span><span></span><span></span></span></div>';
+  body.appendChild(div); body.scrollTop=body.scrollHeight;
+}
+async function mockAskNext(){
+  if(!mockIv) return;
+  const i=mockIv.idx;
+  if(i>=mockIv.count){ await mockFinish(); return; }
+  $('mockOverlayProgress').textContent='第 '+(i+1)+' / '+mockIv.count+' 题';
+  mockAppendLoading('出题中');
+  const p=activeProfile(); const jd=Store.get().current_jd;
+  const sys=`你是${mockIv.position}的资深面试官。请根据候选人简历和岗位 JD 生成第 ${i+1} 道面试题。
+要求：
+- 题型按进度自然切换（自我介绍 / 项目深挖 / 产品Sense / 行为面试 / 技术理解），不要重复上一题类型
+- 难度：${mockIv.difficulty}
+- 真实感：像真面试官会问的问题，不套路，不寒暄
+- 直接给题目本身，不要"好的，第X题"这种废话
+候选人简历：${p.resume_text.slice(0,1200)}
+岗位JD：${jd?(jd.company+' '+jd.position+' '+jd.jd_text.slice(0,500)):'无固定JD，按通用 '+mockIv.position+' 岗位要求出题'}`;
+  try{
+    const r=await callApi(sys,'请直接给出第 '+(i+1)+' 道面试题，只输出题目本身。',0.7);
+    $('mockLoading')?.remove();
+    const q=r.content.trim();
+    mockIv.questions.push(q);
+    mockAppend('ai',q);
+    $('mockInput').focus();
+  }catch(e){
+    $('mockLoading')?.remove();
+    mockAppend('ai','出题失败：'+e.message+'\n\n可点右上角 ✕ 退出后重试。');
+  }
+}
+// 输入框
+$('mockInput').addEventListener('input',()=>{ const t=$('mockInput'); t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,140)+'px'; });
+$('mockInput').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); mockSend(); } });
+$('mockSendBtn').addEventListener('click',mockSend);
+async function mockSend(){
+  if(!mockIv||mockIv.phase!=='dialog') return;
+  const ans=$('mockInput').value.trim();
+  if(!ans){ showAlert('请输入你的回答'); return; }
+  $('mockInput').value=''; $('mockInput').style.height='auto';
+  mockIv.answers.push(ans);
+  mockAppend('user',ans);
+  mockIv.idx++;
+  // 简短过渡确认（不评分）
+  mockAppendLoading();
+  try{
+    const r=await callApi('你是面试官。用户刚回答完第 '+mockIv.idx+' 题。用一句话简短回应（如"好的，下一题""明白了"），不超过15字，不要评价好坏。','简短回应。',0.5);
+    $('mockLoading')?.remove();
+    mockAppend('ai',r.content.trim());
+  }catch(e){ $('mockLoading')?.remove(); }
+  await mockAskNext();
+}
+async function mockFinish(){
+  mockIv.phase='feedback';
+  $('mockOverlayProgress').textContent='生成反馈中...';
+  $('mockInputBar').style.display='none';
+  $('mockBody').innerHTML='<div class="loading-block"><div class="spinner"></div><div>AI 正在批改你的所有回答并生成反馈报告...</div></div>';
+  const p=activeProfile(); const jd=Store.get().current_jd;
+  const qaText=mockIv.questions.map((q,i)=>'Q'+(i+1)+': '+q+'\nA'+(i+1)+': '+(mockIv.answers[i]||'(未作答)')).join('\n\n');
+  const sys=`你是${mockIv.position}的资深面试官，也是面试培训师。请对候选人刚才的 ${mockIv.count} 个回答逐一评估。
+
+【问题与回答】
+${qaText}
+
+候选人简历摘要：${p.resume_text.slice(0,800)}
+岗位JD：${jd?jd.jd_text.slice(0,400):'无'}
+
+【输出严格 JSON，不要额外文字或代码块标记】:
+{
+  "evaluations":[
+    {"index":1,"score":7,"feedback":"评价（50-100字，指出优点和不足）","rewrite":"改写后的标准答案（150-200字，STAR法则）","suggestions":["具体改进建议1","具体改进建议2"]}
+  ],
+  "summary":{
+    "overall_score":7.5,
+    "strengths":["强项1","强项2"],
+    "weaknesses":["弱项1（重点）","弱项2"],
+    "next_preparation":["下次重点准备1","下次重点准备2"]
+  }
+}
+评分标准 1-10：8-10 优秀，6-7 合格，4-5 较弱，1-3 差。weaknesses 要具体指出哪里没答好。evaluations 数量必须等于题目数量 ${mockIv.count}。`;
+  try{
+    const r=await callApiJson(sys,'请按 JSON 格式输出评估结果。',0.4);
+    mockIv.feedback=r;
+    const sessions=loadMockIvSessions();
+    sessions.unshift({ id:genId(), position:mockIv.position, count:mockIv.count, difficulty:mockIv.difficulty, questions:mockIv.questions, answers:mockIv.answers, feedback:r, created_at:new Date().toISOString().slice(0,10) });
+    saveMockIvSessions(sessions);
+    renderMockFeedback(mockIv);
+  }catch(e){
+    $('mockBody').innerHTML='<div class="empty" style="color:var(--red);">反馈生成失败：'+escapeHtml(e.message)+'<br><button class="btn-primary btn-sm" id="mockRetryFbBtn" style="margin-top:12px;">重试</button> <button class="btn-outline btn-sm" id="mockExitBtn">退出</button></div>';
+    $('mockRetryFbBtn').addEventListener('click',mockFinish);
+    $('mockExitBtn').addEventListener('click',mockClose);
+  }
+}
+function renderMockFeedback(state){
+  const fb=state.feedback||{}; const evals=fb.evaluations||[]; const summary=fb.summary||{};
+  const color=s=>s>=8?'var(--green)':s>=6?'var(--yellow)':'var(--red)';
+  const bg=s=>s>=8?'#D1FAE5':s>=6?'#FEF3C7':'#FEE2E2';
+  const overall=summary.overall_score||0;
+  let html='<div class="mock-feedback">';
+  html+='<div class="fb-hero"><div><span class="fb-score" style="color:'+color(overall)+'">'+overall+'</span><span class="fb-suffix">/10</span></div><div style="color:var(--t2);margin-top:6px;font-size:14px;">'+escapeHtml(state.position)+' · '+state.count+'题 · '+escapeHtml(state.difficulty||'中等')+'</div></div>';
+  evals.forEach((ev,i)=>{
+    const sc=ev.score||0;
+    html+='<div class="fb-qcard"><div class="fq-head"><div class="fq-q">Q'+(ev.index||i+1)+'：'+escapeHtml(state.questions[i]||'')+'</div><div class="fq-score" style="background:'+bg(sc)+';color:'+color(sc)+';">'+sc+'/10</div></div>';
+    if(ev.feedback) html+='<div class="fq-section">💡 评价</div><div class="fq-content">'+escapeHtml(ev.feedback)+'</div>';
+    html+='<div class="fq-section">你的回答</div><div class="fq-content" style="color:var(--t2);">'+escapeHtml(state.answers[i]||'(未作答)')+'</div>';
+    if(ev.rewrite) html+='<div class="fq-section">✏️ 改写版标准答案</div><div class="fq-rewrite">'+renderAI(ev.rewrite)+'</div>';
+    if(ev.suggestions&&ev.suggestions.length) html+='<div class="fq-section">改进建议</div><div class="fq-content"><ul>'+ev.suggestions.map(s=>'<li>'+escapeHtml(s)+'</li>').join('')+'</ul></div>';
+    html+='</div>';
+  });
+  if(summary.strengths||summary.weaknesses||summary.next_preparation){
+    html+='<div class="fb-summary"><h3>📋 整体总结</h3>';
+    if(summary.strengths&&summary.strengths.length) html+='<div class="fb-row strengths"><div class="lbl">✅ 强项（你做得好的）</div><ul>'+summary.strengths.map(s=>'<li>'+escapeHtml(s)+'</li>').join('')+'</ul></div>';
+    if(summary.weaknesses&&summary.weaknesses.length) html+='<div class="fb-row weaknesses"><div class="lbl">❌ 弱项（重点改进）</div><ul>'+summary.weaknesses.map(s=>'<li>'+escapeHtml(s)+'</li>').join('')+'</ul></div>';
+    if(summary.next_preparation&&summary.next_preparation.length) html+='<div class="fb-row nextprep"><div class="lbl">🎯 下次重点准备</div><ul>'+summary.next_preparation.map(s=>'<li>'+escapeHtml(s)+'</li>').join('')+'</ul></div>';
+    html+='</div>';
+  }
+  html+='<div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-primary btn-sm" id="mockCopyFbBtn">📋 复制整份反馈</button><button class="btn-outline btn-sm" id="mockRestartBtn">重新做一遍</button><button class="btn-outline btn-sm" id="mockDoneBtn">完成退出</button></div>';
+  html+='</div>';
+  $('mockBody').innerHTML=html;
+  $('mockCopyFbBtn').addEventListener('click',()=>{ copyText(mockFeedbackToText(state)); });
+  $('mockRestartBtn').addEventListener('click',()=>{ const pos=mockIv.position, cnt=mockIv.count, diff=mockIv.difficulty; mockIv=null; startMockInterview(pos,cnt,diff); });
+  $('mockDoneBtn').addEventListener('click',mockClose);
+}
+function mockFeedbackToText(state){
+  const fb=state.feedback||{}; const evals=fb.evaluations||[]; const summary=fb.summary||{};
+  let t='【模拟面试反馈 · '+state.position+'】\n综合得分：'+(summary.overall_score||0)+'/10\n\n';
+  evals.forEach((ev,i)=>{
+    t+='——— Q'+(ev.index||i+1)+'：'+(state.questions[i]||'')+' ———\n';
+    t+='评分：'+(ev.score||0)+'/10\n';
+    if(ev.feedback) t+='评价：'+ev.feedback+'\n';
+    t+='你的回答：'+(state.answers[i]||'(未作答)')+'\n';
+    if(ev.rewrite) t+='改写版：'+ev.rewrite+'\n';
+    if(ev.suggestions&&ev.suggestions.length) t+='改进建议：'+ev.suggestions.join('；')+'\n';
+    t+='\n';
+  });
+  if(summary.strengths&&summary.strengths.length) t+='✅ 强项：\n'+summary.strengths.map(s=>'  · '+s).join('\n')+'\n';
+  if(summary.weaknesses&&summary.weaknesses.length) t+='❌ 弱项：\n'+summary.weaknesses.map(s=>'  · '+s).join('\n')+'\n';
+  if(summary.next_preparation&&summary.next_preparation.length) t+='🎯 下次准备：\n'+summary.next_preparation.map(s=>'  · '+s).join('\n')+'\n';
+  return t;
+}
+
+/* ===== 档案页面（独立） ===== */
+function renderProfilePage(){
+  const p=activeProfile();
+  if(!p){ $('rawResumeView').textContent='请先上传简历'; $('structuredProfile').innerHTML='<div class="empty">无档案</div>'; return; }
+  $('rawResumeView').textContent=p.resume_text;
+  const ps=p.parsed||{};
+  $('structuredProfile').innerHTML=`
+    <div class="profile-section"><h4>教育经历</h4>${(ps.education||[]).map(e=>`<div class="profile-item">${escapeHtml(e.school||'')} · ${escapeHtml(e.major||'')} · ${escapeHtml(e.period||'')}</div>`).join('')||'<div class="empty">无</div>'}</div>
+    <div class="profile-section"><h4>工作/实习经历</h4>${(ps.experience||[]).map(e=>`<div class="profile-item">${escapeHtml(e.company||'')} · ${escapeHtml(e.role||'')} · ${escapeHtml(e.period||'')}</div>`).join('')||'<div class="empty">无</div>'}</div>
+    <div class="profile-section"><h4>项目经历</h4>${(ps.projects||[]).map(e=>`<div class="profile-item"><strong>${escapeHtml(e.name||'')}</strong>：${escapeHtml(e.desc||'')}</div>`).join('')||'<div class="empty">无</div>'}</div>
+    <div class="profile-section"><h4>技能标签</h4><div class="skill-chips" id="skillChips">${(ps.skills||[]).map((s,i)=>`<span class="chip">${escapeHtml(s)}<span class="rm" data-rm="${i}">✕</span></span>`).join('')}<span class="add-chip" id="addSkillBtn">+ 添加</span></div></div>`;
+  $$('#skillChips [data-rm]').forEach(b=>b.addEventListener('click',()=>{ const i=parseInt(b.dataset.rm,10); ps.skills.splice(i,1); Store.flush(); renderProfilePage(); renderProfileCard(); }));
+  $('addSkillBtn').addEventListener('click',()=>{ const s=prompt('输入技能名称'); if(s&&s.trim()){ ps.skills=ps.skills||[]; ps.skills.push(s.trim()); Store.flush(); renderProfilePage(); renderProfileCard(); } });
+}
+$('reuploadBtn2').addEventListener('click',openUploadModal);
+
+/* ===== 投递记录 ===== */
+let appFilter='全部';
+function renderApplicationsPage(){
+  renderStatusCards(); renderAppList();
+}
+function renderStatusCards(){
+  const d=Store.get(); const apps=d.applications||[];
+  const stats={全部:apps.length,投递中:0,面试中:0,已通过:0,已拒绝:0};
+  apps.forEach(a=>{ stats[a.status]=(stats[a.status]||0)+1; });
+  $('statusCards').innerHTML=Object.keys(stats).map(k=>`<div class="status-card ${appFilter===k?'active':''}" data-st="${k}"><div class="name">${k}</div><div class="cnt">${stats[k]}</div></div>`).join('');
+  $$('#statusCards .status-card').forEach(c=>c.addEventListener('click',()=>{ appFilter=c.dataset.st; renderStatusCards(); renderAppList(); }));
+}
+function renderAppList(){
+  const d=Store.get(); let apps=d.applications||[];
+  if(appFilter!=='全部') apps=apps.filter(a=>a.status===appFilter);
+  if(!apps.length){ $('appList').innerHTML='<div class="empty">暂无投递记录，点击右上角添加</div>'; return; }
+  $('appList').innerHTML=apps.map(a=>{
+    const sc=a.match_score||0; const cls=sc>=70?'high':sc>=50?'mid':'low';
+    return `<div class="app-card">
+      <div class="app-head"><div><div class="app-company">🏢 ${escapeHtml(a.company)} <span class="score-pill ${cls}">${sc}/100</span></div><div class="app-position">💼 ${escapeHtml(a.position)}</div><div class="app-meta">📅 ${escapeHtml(a.date||'')}</div></div><span class="app-status s${a.status}">${escapeHtml(a.status)}</span></div>
+      <div class="app-actions"><button class="btn-outline btn-sm" data-adetail="${a.id}">查看详情</button><button class="btn-outline btn-sm" data-astatus="${a.id}">更新状态</button><button class="btn-outline btn-sm" data-adel="${a.id}">删除</button></div>
+      <div class="app-detail hidden" id="ad-${a.id}"></div>
+    </div>`;
+  }).join('');
+  $$('#appList [data-adetail]').forEach(b=>b.addEventListener('click',()=>{ const a=d.applications.find(x=>x.id===b.dataset.adetail); const el=$('ad-'+a.id); if(el.classList.contains('hidden')){ el.classList.remove('hidden'); el.innerHTML=`<div style="color:var(--t2);margin-bottom:8px;">JD：</div><div style="white-space:pre-wrap;">${escapeHtml(a.jd_text||'')}</div>${a.match_analysis?`<div style="margin-top:10px;"><strong>匹配分析：</strong><br>分数 ${a.match_analysis.score}/100<br>适配 ${(a.match_analysis.matched||[]).length} 项，不适配 ${(a.match_analysis.unmatched||[]).length} 项</div>`:''}`; } else el.classList.add('hidden'); }));
+  $$('#appList [data-astatus]').forEach(b=>b.addEventListener('click',()=>{ const a=d.applications.find(x=>x.id===b.dataset.astatus); const s=prompt('新状态（投递中/面试中/已通过/已拒绝）：',a.status); if(s&&['投递中','面试中','已通过','已拒绝'].includes(s)){ a.status=s; Store.flush(); renderApplicationsPage(); } }));
+  $$('#appList [data-adel]').forEach(b=>b.addEventListener('click',()=>{ if(!confirm('删除该投递记录？'))return; d.applications=d.applications.filter(x=>x.id!==b.dataset.adel); Store.flush(); renderApplicationsPage(); }));
+}
+$('addAppBtn').addEventListener('click',()=>{ $('appModal').classList.add('open'); });
+$('appSaveBtn').addEventListener('click',async()=>{
+  const company=$('appCompany').value.trim(); const position=$('appPosition').value.trim(); const jd=$('appJd').value.trim();
+  if(!company||!position){ showAlert('请填写公司和岗位'); return; }
+  if(!jd){ showAlert('请粘贴 JD 文本'); return; }
+  const app={ id:genId(), company, position, jd_text:jd, status:$('appStatus').value, date:new Date().toISOString().slice(0,10), match_score:0, match_analysis:null };
+  Store.get().applications.unshift(app); Store.flush();
+  $('appModal').classList.remove('open'); $('appCompany').value=''; $('appPosition').value=''; $('appJd').value='';
+  renderApplicationsPage();
+  if(!apiKey){ showAlert('已保存，设置 API Key 后可生成匹配分数'); return; }
+  // 异步分析匹配度
+  try{
+    const r=await callMatch(activeProfile()?.resume_text||'',jd);
+    app.match_score=r.score||0; app.match_analysis=r; Store.flush(); renderApplicationsPage();
+    showAlert('匹配度分析完成：'+app.match_score+'/100');
+  }catch(e){ showAlert('匹配分析失败：'+e.message); }
+});
+
+/* ===== 面试复盘（录音上传 + 转写 + 分析 + 历史） ===== */
+const IV_HISTORY_KEY='cv_agent_iv_history';
+function loadIvHistory(){ try{ return JSON.parse(localStorage.getItem(IV_HISTORY_KEY))||[]; }catch(e){ return []; } }
+function saveIvHistory(h){ try{ localStorage.setItem(IV_HISTORY_KEY,JSON.stringify(h.slice(-20))); }catch(e){} }
+const audioDrop=$('audioDrop'),audioInput=$('audioInput');
+audioDrop.addEventListener('click',()=>audioInput.click());
+audioDrop.addEventListener('dragover',e=>{e.preventDefault();audioDrop.classList.add('dragover');});
+audioDrop.addEventListener('dragleave',()=>audioDrop.classList.remove('dragover'));
+audioDrop.addEventListener('drop',e=>{e.preventDefault();audioDrop.classList.remove('dragover');if(e.dataTransfer.files.length)handleAudioFile(e.dataTransfer.files[0]);});
+audioInput.addEventListener('change',e=>{ if(e.target.files.length) handleAudioFile(e.target.files[0]); e.target.value=''; });
+function handleAudioFile(file){
+  const st=$('audioStatus'); st.classList.remove('hidden');
+  const url=URL.createObjectURL(file);
+  st.innerHTML=`<div>🎵 ${escapeHtml(file.name)}</div><audio controls src="${url}" style="width:100%;margin-top:6px;"></audio>
+    <div style="margin-top:8px;font-size:12px;color:var(--t2);">⚠️ 浏览器无法直接转写音频文件。请听录音手动转写到下方文字稿，或点击下方按钮用麦克风实时录入。</div>
+    <button class="btn-outline btn-sm" id="liveRecordBtn" style="margin-top:8px;">🎤 实时录音转写</button>`;
+  $('liveRecordBtn').addEventListener('click',startLiveRecord);
+}
+// Web Speech API 实时录音转写（仅 Chrome/Edge 支持）
+let recognition=null,recording=false;
+function startLiveRecord(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ showAlert('您的浏览器不支持语音识别，请使用 Chrome/Edge，或直接粘贴文字稿'); return; }
+  if(recording){ recognition.stop(); return; }
+  recognition=new SR(); recognition.lang='zh-CN'; recognition.continuous=true; recognition.interimResults=true;
+  let baseText=$('ivTranscript').value;
+  recognition.onresult=e=>{ let interim=''; for(let i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) baseText+=e.results[i][0].transcript; else interim+=e.results[i][0].transcript; } $('ivTranscript').value=baseText+interim; };
+  recognition.onerror=e=>{ showAlert('录音识别出错：'+e.error); recording=false; updateRecordBtn(); };
+  recognition.onend=()=>{ recording=false; updateRecordBtn(); };
+  try{ recognition.start(); recording=true; updateRecordBtn(); showAlert('开始录音，请对着麦克风说话'); }catch(e){ showAlert('启动录音失败：'+e.message); }
+}
+function updateRecordBtn(){ const b=$('liveRecordBtn'); if(!b) return; b.textContent=recording?'⏹ 停止录音':'🎤 实时录音转写'; b.style.background=recording?'var(--red)':''; b.style.color=recording?'#fff':''; }
+// 分析面试
+$('ivAnalyzeBtn').addEventListener('click',async()=>{
+  const company=$('ivCompany').value.trim(); const transcript=$('ivTranscript').value.trim();
+  if(transcript.length<20){ showAlert('请粘贴面试文字稿或录音转写'); return; }
+  if(!apiKey){ showAlert('请先设置 API Key'); openApiSetting(); return; }
+  $('ivResult').innerHTML=loadingHtml('正在分析面试...');
+  const jd=Store.get().current_jd;
+  try{
+    const sys=`你是资深面试官和面试培训师。分析面试回答，给出结构化复盘报告。返回严格JSON，不要额外文字或代码块标记：
+{"totalScore":1-10,"dimensions":[{"name":"回答完整性","score":0-10},{"name":"STAR法则","score":0-10},{"name":"内容匹配度","score":0-10},{"name":"表达清晰度","score":0-10}],"questionAnalysis":[{"question":"问题","score":0-10,"improvement":"改进建议"}],"improvements":["整体改进建议"],"optimizedAnswer":"优化版标准答案示例"}`;
+    const r=await callApiJson(sys,'面试公司/岗位：'+company+'\nJD：'+(jd?jd.jd_text.slice(0,400):'无')+'\n\n面试文字稿：\n'+transcript.slice(0,2500),0.5);
+    const color=s=>s>=8?'var(--green)':s>=5?'var(--yellow)':'var(--red)';
+    $('ivResult').innerHTML=`<div class="match-hero"><div><span class="match-score" style="color:${color(r.totalScore)}">${r.totalScore||0}</span><span class="match-suffix">/10</span></div></div>
+      ${(r.dimensions||[]).map(d=>`<div class="match-list-label">${escapeHtml(d.name)} <span style="float:right;color:${color(d.score)}">${d.score}/10</span></div><div class="dim-bar"><div class="dim-fill" style="background:${color(d.score)}" data-w="${(d.score||0)*10}"></div></div>`).join('')}
+      <div class="match-list-label">逐题分析</div>${(r.questionAnalysis||[]).map(qa=>`<div class="suggestion-item"><strong>${escapeHtml(qa.question||'')}（${qa.score||0}/10）</strong><br>${escapeHtml(qa.improvement||'')}</div>`).join('')}
+      <div class="match-list-label">整体改进建议</div>${(r.improvements||[]).map(i=>`<div class="suggestion-item">✗ ${escapeHtml(i)}</div>`).join('')}
+      <div class="match-list-label">优化版标准答案</div><div class="script-card"><div class="script-content">${escapeHtml(r.optimizedAnswer||'')}</div><button class="btn-copy" data-copy="${escapeAttr(r.optimizedAnswer||'')}">一键复制</button></div>`;
+    setTimeout(()=>{ $$('#ivResult .dim-fill').forEach(f=>f.style.width=f.dataset.w+'%'); },50);
+    $$('#ivResult [data-copy]').forEach(b=>b.addEventListener('click',()=>copyText(b.dataset.copy)));
+    // 保存到历史
+    const hist=loadIvHistory(); hist.unshift({ id:genId(), company:company||'未填写', date:new Date().toISOString().slice(0,10), score:r.totalScore||0, result:r, transcript:transcript.slice(0,500) }); saveIvHistory(hist); renderIvHistory();
+    showAlert('分析完成，已保存到历史记录');
+  }catch(e){ showAlert(e.message); $('ivResult').innerHTML=''; }
+});
+function renderIvHistory(){
+  const h=loadIvHistory();
+  if(!h.length){ $('ivHistoryList').innerHTML='<div class="empty">暂无历史复盘记录</div>'; return; }
+  $('ivHistoryList').innerHTML=h.map(r=>`<div class="review-card" data-rid="${r.id}"><div class="rc-head"><div><div class="rc-company">🏢 ${escapeHtml(r.company)}</div><div class="rc-meta">📅 ${escapeHtml(r.date)} · 📊 综合评分 ${r.score}/10</div></div><span class="score-pill ${r.score>=7?'high':r.score>=5?'mid':'low'}">${r.score}/10</span></div><div class="review-detail" id="ivd-${r.id}"></div></div>`).join('');
+  $$('.review-card').forEach(c=>c.addEventListener('click',()=>{ const id=c.dataset.rid; const r=h.find(x=>x.id===id); const el=$('ivd-'+id); if(el.classList.contains('open')){ el.classList.remove('open'); el.innerHTML=''; } else { el.classList.add('open'); const color=s=>s>=8?'var(--green)':s>=5?'var(--yellow)':'var(--red)'; el.innerHTML=`<div style="color:var(--t2);margin-bottom:6px;">文字稿摘要：</div><div style="white-space:pre-wrap;margin-bottom:10px;font-size:12px;">${escapeHtml(r.transcript||'')}</div>${(r.result.dimensions||[]).map(d=>`<div style="margin:2px 0;">${escapeHtml(d.name)}：<span style="color:${color(d.score)}">${d.score}/10</span></div>`).join('')}<div style="margin-top:8px;"><strong>改进建议：</strong>${escapeHtml((r.result.improvements||[]).join('；'))}</div>`; } }));
+}
+
+/* ===== 初始化 ===== */
+const state={ scriptsLoaded:false, resumeLoaded:false, matchResult:null };
+function init(){
+  renderProfileCard(); renderProfileDropdown(); renderJdBar(); renderMatchEmpty(); renderScriptsEmpty(); renderResumeEmpty();
+  // 恢复对话历史 + 发送按钮初始状态
+  renderChatFromHistory(); updateSendBtn();
+  // 若已有 current_jd 且有 match_result，恢复显示
+  const jd=Store.get().current_jd;
+  if(jd&&jd.match_result){ state.matchResult=jd.match_result; renderMatch(jd.match_result); }
+  if(!activeProfile()&&!apiKey){ setTimeout(()=>$('apiModal').classList.add('open'),300); }
+}
+init();
+</script>
+</body>
+</html>
