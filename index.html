@@ -79,6 +79,24 @@ a:hover{text-decoration:underline;}
 .quick-btn{background:#fff;border:1px solid var(--border);color:#374151;padding:8px 16px;border-radius:20px;font-size:14px;transition:all .15s;}
 .quick-btn:hover{border-color:var(--t1);color:var(--t1);}
 
+/* ============ Agent 协作状态条（V4） ============ */
+.agent-status-bar{background:#F9FAFB;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:12px 0;display:none;}
+.agent-status-title{font-size:12px;color:var(--t3);margin-bottom:10px;font-weight:600;letter-spacing:.5px;}
+.agent-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;}
+.agent-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:16px;font-size:12px;font-weight:500;transition:all .2s;}
+.agent-chip .agent-ico{font-size:13px;}
+.agent-chip.done{background:#D1FAE5;color:#065F46;}
+.agent-chip.working{background:#FEF3C7;color:#92400E;animation:agentPulse 1.5s infinite;}
+.agent-chip.pending{background:#F3F4F6;color:#6B7280;}
+.agent-chip.failed{background:#FEE2E2;color:#991B1B;}
+.agent-arrow{color:var(--t3);font-size:12px;}
+@keyframes agentPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+#agentStatusHint{font-size:12px;color:var(--t3);padding-top:6px;border-top:1px dashed var(--border);}
+.agent-chain{margin:8px 0;font-size:13px;line-height:1.8;color:var(--t2);}
+.agent-chain .ac-line{padding:2px 0;}
+.agent-chain .ac-done{color:#065F46;}
+.agent-chain .ac-fail{color:#991B1B;}
+
 /* ============ 聊天框 ============ */
 .chat-card{padding:0;overflow:hidden;}
 .chat-history{max-height:340px;overflow-y:auto;padding:16px;}
@@ -363,6 +381,7 @@ a:hover{text-decoration:underline;}
     <div class="nav-item" data-page="profile">档案</div>
     <div class="nav-item" data-page="applications">投递记录</div>
     <div class="nav-item" data-page="interview">面试复盘</div>
+    <div class="nav-item" data-page="rag">面经库</div>
   </div>
   <div class="nav-right">
     <div class="dropdown">
@@ -380,6 +399,22 @@ a:hover{text-decoration:underline;}
     <div class="card profile-card" id="profileCard"></div>
     <!-- JD 提示条 -->
     <div class="jd-bar" id="jdBar"></div>
+    <!-- Agent 协作状态条（V4） -->
+    <div class="agent-status-bar" id="agentStatusBar">
+      <div class="agent-status-title">🤖 Agent 协作状态</div>
+      <div class="agent-chips">
+        <span class="agent-chip pending" data-agent-chip="resumeAnalyzer" data-label="简历分析">○ 简历分析</span>
+        <span class="agent-arrow">→</span>
+        <span class="agent-chip pending" data-agent-chip="jdAnalyzer" data-label="JD 分析">○ JD 分析</span>
+        <span class="agent-arrow">→</span>
+        <span class="agent-chip pending" data-agent-chip="matchAgent" data-label="匹配分析">○ 匹配分析</span>
+        <span class="agent-arrow">→</span>
+        <span class="agent-chip pending" data-agent-chip="copywriter" data-label="话术生成">○ 话术生成</span>
+        <span class="agent-arrow">+</span>
+        <span class="agent-chip pending" data-agent-chip="rewriter" data-label="简历改写">○ 简历改写</span>
+      </div>
+      <div id="agentStatusHint">等待开始分析...</div>
+    </div>
     <!-- 快捷操作 -->
     <div class="quick-wrap">
       <div class="quick-label">你可以试试</div>
@@ -463,6 +498,44 @@ a:hover{text-decoration:underline;}
     <div class="card">
       <div class="card-title">历史复盘记录</div>
       <div id="ivHistoryList"></div>
+    </div>
+  </div>
+
+  <!-- ===== 面经库页面（RAG） ===== -->
+  <div id="page-rag" class="hidden">
+    <div class="card">
+      <div class="card-title">面试题库 RAG 检索
+        <span style="font-size:12px;font-weight:400;color:var(--t3);margin-left:8px;">TF-IDF 向量检索 + IndexedDB 本地存储</span>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:13px;color:var(--t3);margin-bottom:6px;">📚 题库数量：<strong id="ragCount">0</strong> 条</div>
+          <div style="font-size:12px;color:var(--t3);">在「面试准备」Tab 生成问题时，自动检索题库中的相似面经作为参考</div>
+        </div>
+        <button class="btn-outline btn-sm" id="ragImportBtn">批量导入</button>
+        <button class="btn-outline btn-sm" id="ragClearBtn">清空题库</button>
+      </div>
+      <div class="form-group">
+        <label>添加面经</label>
+        <input type="text" id="ragQInput" placeholder="面试问题，如：你在 Dify 里搭的工作流，IF/ELSE 分支依据什么条件？" style="margin-bottom:8px;">
+        <textarea id="ragAInput" placeholder="优秀回答 / 参考答案（选填）" style="min-height:80px;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <input type="text" id="ragTagInput" placeholder="标签（选填，如：AI产品、字节跳动）" style="flex:1;">
+          <button class="btn-primary btn-sm" id="ragAddBtn">添加</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">题库列表 <span style="font-size:12px;font-weight:400;color:var(--t3);">（点击删除按钮可移除）</span></div>
+      <div id="ragList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">RAG 检索测试</div>
+      <div class="form-group">
+        <input type="text" id="ragTestInput" placeholder="输入问题，测试检索效果...">
+        <button class="btn-primary btn-sm" id="ragTestBtn" style="margin-top:8px;">检索</button>
+      </div>
+      <div id="ragTestResult"></div>
     </div>
   </div>
 </main>
@@ -636,6 +709,480 @@ async function callApiJson(sys,usr,temp){
   }
 }
 
+/* ============================================================
+   多 Agent 协作架构（V4）
+   - 6 个 Agent：Orchestrator(规则) + 5 个 LLM Agent
+   - Agent 间通过结构化 JSON 传递数据
+   - Orchestrator 编排调用顺序（并行+串联）
+   - 输出缓存到 localStorage，追问时复用
+   ============================================================ */
+
+// ===== Agent System Prompts（每个 Agent 独立角色定义）=====
+const PROMPT_RESUME_ANALYZER=`你是简历分析 Agent，职责是把用户上传的简历文本解析成结构化 JSON。
+输入：用户简历原文（可能是 Markdown / 纯文本 / PDF 提取的文本）
+输出 JSON Schema：
+{"name":"姓名","education":[{"school":"学校","major":"专业","degree":"本科/硕士","period":"2024.09-2028.06"}],"experience":[{"company":"公司","role":"岗位","period":"...","bullets":["职责1","职责2"]}],"projects":[{"name":"项目名","role":"角色","period":"...","bullets":["成果1","成果2"],"tech":["Python","DeepSeek API"]}],"skills":["技能1","技能2"],"summary":"一句话总结候选人的核心亮点（30字内）"}
+要求：
+1. 严格按 JSON 输出，不要加任何 Markdown 标记
+2. 不要编造，只从原文提取
+3. 如果某字段原文没有，留空字符串或空数组
+4. summary 要包含候选人最有差异化的 1-2 个亮点
+
+## few-shot 示例
+输入（简历摘要）：
+"张三 | 广东工业大学 计算机科学 本科 2022.09-2026.06
+实习：字节跳动 AI产品实习生 2024.07-2024.12
+- 使用 Dify 搭建AI学习搭子工作流，7节点自动化
+- 设计Prompt模板，评估输出质量，准确率提升23%
+项目：CV Agent求职助手（Trae+DeepSeek API）
+技能：Python, Prompt Engineering, SQL, Figma"
+输出：
+{"name":"张三","education":[{"school":"广东工业大学","major":"计算机科学","degree":"本科","period":"2022.09-2026.06"}],"experience":[{"company":"字节跳动","role":"AI产品实习生","period":"2024.07-2024.12","bullets":["使用 Dify 搭建AI学习搭子工作流，7节点自动化","设计Prompt模板，评估输出质量，准确率提升23%"]}],"projects":[{"name":"CV Agent求职助手","role":"独立开发者","period":"","bullets":["基于 Trae + DeepSeek API 开发多Agent协作求职助手"],"tech":["Trae","DeepSeek API"]}],"skills":["Python","Prompt Engineering","SQL","Figma"],"summary":"有AI产品实习经验，擅长Prompt工程和工作流设计的计算机本科生"`;
+
+const PROMPT_JD_ANALYZER=`你是 JD 分析 Agent，职责是把岗位描述拆解成结构化要求清单。
+输入：目标岗位 JD 原文
+输出 JSON Schema：
+{"company":"公司名（如未提及留空）","position":"岗位名","hard_skills":["Python","SQL","Prompt Engineering"],"soft_skills":["跨部门沟通","用户洞察"],"experience_req":{"years":"3年以上","domain":"AI产品/SaaS/电商"},"keywords":["AI Agent","RAG","工作流"],"must_have":["必须满足的条件1"],"nice_to_have":["加分项1"],"summary":"这个岗位最核心的 3 个要求（30字内）"}
+要求：
+1. 严格按 JSON 输出
+2. hard_skills 和 soft_skills 要区分清楚
+3. must_have 是硬性门槛，nice_to_have 是加分项
+4. keywords 用于后续匹配关键词比对
+
+## few-shot 示例
+输入（JD摘要）：
+"字节跳动 | AI产品实习生
+职责：设计Prompt模板并评估输出质量；协同算法团队优化RAG链路
+要求：熟悉AI Agent/RAG；Python/SQL；跨部门沟通；有AI产品实习经验优先"
+输出：
+{"company":"字节跳动","position":"AI产品实习生","hard_skills":["Python","SQL","Prompt Engineering","RAG"],"soft_skills":["跨部门沟通","协同算法团队"],"experience_req":{"years":"实习经验优先","domain":"AI产品"},"keywords":["AI Agent","RAG","Prompt","工作流"],"must_have":["熟悉AI Agent/RAG","Python/SQL"],"nice_to_have":["AI产品实习经验"],"summary":"需懂Prompt工程+RAG，能协同算法团队优化AI产品链路"`;
+
+const PROMPT_MATCH_AGENT=`你是匹配分析 Agent。你将接收两个上游 Agent 的结构化输出：
+- 简历结构化数据（来自 Resume Analyzer）
+- JD 结构化数据（来自 JD Analyzer）
+请基于这两份数据计算匹配度，不要再看原始文本。
+输出 JSON Schema：
+{"score":78,"job_title":"AI产品经理","matched":[{"title":"熟悉Python","detail":"简历有Python项目，JD要求Python","evidence":"项目XX用了Python"}],"unmatched":[{"title":"缺少K8s经验","detail":"JD要求K8s，简历只有Docker","evidence":"项目XX提到Docker","severity":"high"}],"suggestions":["建议将'使用Docker'改为'使用Kubernetes编排容器'"],"keyword_coverage":{"matched_keywords":["Python","AI Agent"],"missing_keywords":["K8s","SaaS"]}}
+要求：
+1. score 0-100，要严格（85+优秀，70-84良好，55-69一般，<55不匹配）
+2. matched/unmatched 每条都要有 evidence（来自简历哪个项目/经历）
+3. unmatched 的 severity：high=硬性门槛缺失，medium=重要项缺失，low=加分项缺失
+4. keyword_coverage 基于JD的keywords字段
+5. suggestions 要具体到措辞修改
+
+## few-shot 示例
+输入：
+{"resume_structured":{"name":"张三","skills":["Python","Prompt Engineering"],"projects":[{"name":"CV Agent","tech":["DeepSeek API","Trae"]}],"summary":"有AI产品实习经验，擅长Prompt工程"},"jd_structured":{"position":"AI产品实习生","hard_skills":["Python","Prompt Engineering","RAG"],"keywords":["AI Agent","RAG","Prompt"],"must_have":["熟悉RAG"]}}
+输出：
+{"score":72,"job_title":"AI产品实习生","matched":[{"title":"Python+Prompt Engineering","detail":"简历有Python和Prompt工程经验，JD要求相同技能","evidence":"字节实习期间设计Prompt模板，准确率提升23%"},{"title":"AI Agent实践","detail":"简历有AI Agent项目，JD要求熟悉AI Agent","evidence":"CV Agent项目使用多Agent协作架构"}],"unmatched":[{"title":"缺少RAG经验","detail":"JD要求熟悉RAG链路优化，简历未提及","evidence":"简历项目未出现RAG相关内容","severity":"high"}],"suggestions":["在简历中补充RAG相关学习经历或项目，如'调研RAG链路并对比向量数据库方案'","将'设计Prompt模板'改为'设计Prompt模板并基于RAG检索增强生成'"],"keyword_coverage":{"matched_keywords":["AI Agent","Prompt"],"missing_keywords":["RAG"]}}`;
+
+const PROMPT_COPYWRITER=`你是话术生成 Agent。你将接收匹配分析结果，基于匹配点生成投递话术。
+输出 JSON Schema：
+{"boss":{"content":"Boss直聘话术（≤100字）","explanation":"为什么这样写（30字内）"},"email":{"content":"邮件投递话术（200-300字）","explanation":"..."},"cover_letter":{"content":"英文Cover Letter（150-200词）","explanation":"..."}}
+要求：
+1. 话术必须基于 matched 里的真实匹配点，不要编造
+2. 引用简历里的具体项目名/工具名/数字
+3. 严禁套话："贵公司平台很大"、"非常感兴趣"、"希望加入"
+4. Boss 版 ≤100 字，每句都要有信息
+5. Cover Letter 用英文，正式商务风格
+
+## few-shot 示例
+输入：
+{"match_result":{"score":78,"job_title":"AI产品实习生","matched":[{"title":"Prompt工程","detail":"简历有Prompt设计经验"}]},"resume_summary":"大三计算机学生，字节AI产品实习经验","jd_summary":"需懂Prompt+RAG的AI产品实习生","style":"专业"}
+输出：
+{"boss":{"content":"您好，我是广东工业大学大三的张三，看到JD要求Prompt模板设计经验，我在字节实习期间设计过7套Prompt模板并建立评估体系，准确率提升23%。希望聊聊这个AI产品实习岗。","explanation":"自报家门+精准匹配JD关键词+具体数字"},"email":{"content":"尊敬的字节跳动招聘团队：\\n\\n我是广东工业大学计算机科学专业的张三，现申请AI产品实习生岗位。\\n\\n在字节跳动实习期间，我使用Dify搭建了7节点AI学习工作流，并设计了Prompt模板评估体系，将输出准确率提升了23%。这与贵司JD中'设计Prompt模板并评估输出质量'的要求高度匹配。\\n\\n附件为我的简历，期待有机会进一步沟通。\\n\\n此致\\n张三","explanation":"正式邮件格式+2个具体匹配点+数字支撑"},"cover_letter":{"content":"Dear Hiring Manager,\\n\\nI am writing to apply for the AI Product Intern position at ByteDance. During my previous internship at ByteDance, I designed prompt templates and built a 7-node AI workflow using Dify, achieving a 23% improvement in output accuracy. This experience aligns closely with your requirement for prompt engineering and quality evaluation.\\n\\nI look forward to discussing how my background in AI product development can contribute to your team.\\n\\nSincerely,\\nZhang San","explanation":"三段式：申请岗位+匹配经历+动机结尾"}}`;
+
+const PROMPT_REWRITER=`你是简历改写 Agent。你将接收匹配分析结果，针对目标岗位做定制改写。
+输出 JSON Schema：
+{"mode":"rewrite","target_job":"AI产品经理","current_job":"运营专员","common_skills":["数据分析","用户调研"],"resume_markdown":"# 姓名\\n## 工作经历\\n...","explanation":"本次改写将运营经验重新包装为产品经验...","suggested_additions":[{"section":"项目经验","content":"建议补充一个AI推荐系统的产品方案"}]}
+要求：
+1. 基于 unmatched 决定改写重点
+2. 把简历里和 JD 关键词相关的经历，措辞调整为更匹配 JD
+3. 缺失内容用【建议补充：XXX】标注，不要伪造
+4. 用 STAR 法则重写每个 bullet
+5. 跨岗场景识别 common_skills 并重新包装
+6. resume_markdown 输出完整 Markdown 简历，可直接渲染
+
+## few-shot 示例
+输入：
+{"match_result":{"unmatched":[{"title":"缺少RAG经验","severity":"high"}],"suggestions":["补充RAG相关经历"]},"resume_structured":{"name":"张三","experience":[{"company":"字节跳动","role":"AI产品实习生","bullets":["设计Prompt模板"]}],"skills":["Python","Prompt Engineering"]},"jd_structured":{"position":"AI产品实习生","keywords":["RAG","AI Agent"]},"mode":"rewrite"}
+输出：
+{"mode":"rewrite","target_job":"AI产品实习生","current_job":"AI产品实习生","common_skills":["Python","Prompt Engineering","AI Agent"],"resume_markdown":"# 张三\\n## 工作经历\\n### 字节跳动 | AI产品实习生\\n- 设计并优化7套Prompt模板，建立评估体系，输出准确率提升23%\\n- 【建议补充：调研RAG链路方案，对比Faiss/Milvus向量数据库检索效果】\\n## 技能\\nPython · Prompt Engineering · AI Agent · DeepSeek API","explanation":"保留原有Prompt工程经历并量化，针对缺失的RAG经验标注建议补充","suggested_additions":[{"section":"项目经验","content":"建议补充一个RAG相关项目，如'基于RAG的智能问答系统'"}]}`;
+
+// ===== Agent 基类（V5：加重试机制 + 完善日志）=====
+class Agent {
+  constructor(name, sysPrompt, temperature=0.3){
+    this.name=name;
+    this.sysPrompt=sysPrompt;
+    this.temperature=temperature;
+    this.maxRetries=1; // 失败后自动重试 1 次
+  }
+  async run(input){
+    const userPrompt=this.buildUserPrompt(input);
+    console.log('[Agent] '+this.name+' 开始工作, inputKeys=', Object.keys(input||{}), 'temp='+this.temperature);
+    let lastErr;
+    for(let attempt=0; attempt<=this.maxRetries; attempt++){
+      try{
+        const result=await callApiJson(this.sysPrompt, userPrompt, this.temperature);
+        console.log('[Agent] '+this.name+' 完成'+(attempt>0?'（重试第'+attempt+'次成功）':''));
+        return result;
+      }catch(e){
+        lastErr=e;
+        console.warn('[Agent] '+this.name+' 第'+(attempt+1)+'次尝试失败:', e.message);
+        if(attempt<this.maxRetries){
+          console.log('[Agent] '+this.name+' 等待 1 秒后重试...');
+          await new Promise(r=>setTimeout(r, 1000));
+        }
+      }
+    }
+    console.error('[Agent] '+this.name+' 全部尝试失败');
+    throw lastErr;
+  }
+  buildUserPrompt(input){
+    return JSON.stringify(input, null, 2);
+  }
+}
+
+// ===== 面试 & 对话 Agent Prompts（V5 新增）=====
+
+const PROMPT_INTERVIEWER=`你是面试出题 Agent。根据候选人简历和岗位 JD 生成面试题。
+如果输入包含 rag_context（来自题库的真实面经），请优先参考这些面经出题，使问题更贴近真实面试场景。
+输出 JSON Schema：
+{"questions":[{"category":"技术/项目/行为/HR","question":"问题","key_points":"考察点","answer":"参考答案要点"}]}
+要求：
+1. 生成 6-8 个问题，覆盖技术深挖、项目细节、行为问题、HR 常见问题
+2. 问题要真实，像面试官会问的，不套路不寒暄
+3. answer 要结合简历真实经历，给出要点
+4. category 必须是以下之一：技术、项目、行为、HR
+5. 若有 rag_context，至少 2 个问题参考题库中的真实面经
+
+## few-shot 示例
+输入：{"resume":{"summary":"大三AI产品方向，有Dify工作流项目，字节实习"},"jd":{"position":"AI产品实习","keywords":["Prompt","RAG"]},"rag_context":[{"question":"你在Dify里搭的工作流怎么设计的","answer":"用IF/ELSE分支根据用户输入意图分流","score":0.85}]}
+输出：
+{"questions":[{"category":"项目","question":"你在 Dify 里搭的7节点工作流，IF/ELSE 分支是依据什么条件判断的？","key_points":"考察对工作流设计的理解深度","answer":"应解释IF/ELSE的条件逻辑、为什么这样设计、用户场景驱动"},{"category":"技术","question":"Prompt Engineering 里你怎么评估输出质量？有哪些指标？","key_points":"考察Prompt评估方法论","answer":"应提到准确率、相关性、一致性等维度，最好有具体评估框架"}]}`;
+
+const PROMPT_INTERVIEW_EVALUATOR=`你是面试评估 Agent。对候选人的面试回答逐一评估并生成反馈报告。
+输出 JSON Schema：
+{"evaluations":[{"index":1,"score":7,"feedback":"评价（50-100字）","rewrite":"改写后的标准答案（150-200字，STAR法则）","suggestions":["改进建议1","改进建议2"]}],"summary":{"overall_score":7.5,"strengths":["强项1"],"weaknesses":["弱项1"],"next_preparation":["下次重点1"]}}
+要求：
+1. 评分 1-10：8-10 优秀，6-7 合格，4-5 较弱，1-3 差
+2. evaluations 数量必须等于题目数量
+3. weaknesses 要具体指出哪里没答好
+4. rewrite 用 STAR 法则重写
+
+## few-shot 示例
+输入：{"qa":[{"q":"说说你的AI Agent项目","a":"我做了一个求职助手，用DeepSeek API"}],"position":"AI产品实习生"}
+输出：
+{"evaluations":[{"index":1,"score":5,"feedback":"回答过于简略，缺少项目背景、技术选型原因和量化成果。没有体现产品思维。","rewrite":"在CV Agent项目中（Situation），我发现求职者需要简历优化和面试准备的一站式工具（Task）。我基于DeepSeek API设计了6个专用Agent（Action），通过Orchestrator编排实现并行分析，将匹配分析耗时从手动30分钟缩短到2分钟（Result）。","suggestions":["用STAR法则结构化回答","补充技术选型原因","加入量化数据"]}],"summary":{"overall_score":5,"strengths":["能快速概括项目核心"],"weaknesses":["回答缺乏结构和量化数据","未体现产品思维"],"next_preparation":["练习STAR法则","准备项目的量化指标"]}}`;
+
+const PROMPT_INTERVIEW_REVIEWER=`你是面试复盘 Agent。分析面试文字稿，给出结构化复盘报告。
+输出 JSON Schema：
+{"totalScore":1-10,"dimensions":[{"name":"回答完整性","score":0-10},{"name":"STAR法则","score":0-10},{"name":"内容匹配度","score":0-10},{"name":"表达清晰度","score":0-10}],"questionAnalysis":[{"question":"问题","score":0-10,"improvement":"改进建议"}],"improvements":["整体改进建议"],"optimizedAnswer":"优化版标准答案示例"}
+要求：
+1. totalScore 是 dimensions 的平均分
+2. questionAnalysis 每题都要有改进建议
+3. improvements 给 3-5 条整体建议
+4. optimizedAnswer 用 STAR 法则重写
+
+## few-shot 示例
+输入：{"company":"字节跳动","jd_summary":"AI产品实习生","transcript":"面试官：说说你的项目。我：我做了一个AI求职助手..."}
+输出：
+{"totalScore":5,"dimensions":[{"name":"回答完整性","score":4},{"name":"STAR法则","score":3},{"name":"内容匹配度","score":6},{"name":"表达清晰度","score":7}],"questionAnalysis":[{"question":"说说你的项目","score":4,"improvement":"缺少Situation和Result，只讲了Action。建议补充项目背景和量化成果。"}],"improvements":["每个回答都用STAR法则结构化","补充项目的量化数据","提前准备3个核心项目的完整叙述"],"optimizedAnswer":"在发现求职者需要一站式求职工具后（Situation），我决定开发CV Agent（Task）。我使用DeepSeek API设计6个Agent，通过Orchestrator编排实现并行分析（Action），将匹配分析从30分钟缩短到2分钟（Result）。"}`;
+
+const PROMPT_CHAT=`你是 CV Agent 求职对话 Agent。基于用户简历和当前 JD 回答问题。
+如果输入包含 rag_context（来自题库的真实面经），回答面试相关问题时请参考这些面经，让回答更贴近真实场景。
+要求：
+1. 简洁专业，必要时给具体建议
+2. 优先使用结构化数据（matchResult）回答，而不是重新分析原始文本
+3. 如果用户问的问题超出简历/JD范围，诚实说明并给建议
+4. 若有 rag_context，回答面试问题时引用相关面经
+
+## few-shot 示例
+输入：{"resume_summary":"大三计算机学生，字节AI产品实习","jd_summary":"AI产品实习生","match_result":{"score":72,"unmatched":[{"title":"缺少RAG经验"}]},"rag_context":[{"question":"RAG和微调有什么区别","answer":"RAG是检索增强生成，微调是更新模型参数","score":0.82}],"question":"面试会问什么？"}
+输出：
+{"reply":"根据题库面经，AI产品面试常问：\\n1. RAG和微调的区别（题库命中）\\n2. 你在Dify里搭的工作流怎么设计的\\n3. Prompt Engineering怎么评估输出质量\\n\\n建议重点准备RAG相关问题，因为这是你的匹配差距。"}`;
+
+// ===== 9 个 Agent 实例（V5：全面 Agent 化）=====
+const Agents={
+  resumeAnalyzer:      new Agent('简历分析 Agent',   PROMPT_RESUME_ANALYZER,         0.2),
+  jdAnalyzer:          new Agent('JD 分析 Agent',     PROMPT_JD_ANALYZER,             0.2),
+  matchAgent:          new Agent('匹配分析 Agent',     PROMPT_MATCH_AGENT,             0.3),
+  copywriter:          new Agent('话术生成 Agent',     PROMPT_COPYWRITER,              0.7),
+  rewriter:            new Agent('简历改写 Agent',     PROMPT_REWRITER,                0.4),
+  interviewer:         new Agent('面试出题 Agent',     PROMPT_INTERVIEWER,             0.6),
+  interviewEvaluator:  new Agent('面试评估 Agent',     PROMPT_INTERVIEW_EVALUATOR,     0.4),
+  interviewReviewer:   new Agent('面试复盘 Agent',     PROMPT_INTERVIEW_REVIEWER,      0.5),
+  chatAssistant:       new Agent('求职对话 Agent',     PROMPT_CHAT,                    0.7)
+};
+
+// ===== Agent 输出缓存（localStorage，1小时有效期）=====
+const AGENT_CACHE_KEY='cv_agent_cache';
+function cacheAgentOutput(name, output){
+  try{
+    const cache=JSON.parse(localStorage.getItem(AGENT_CACHE_KEY)||'{}');
+    cache[name]={output, ts:Date.now()};
+    localStorage.setItem(AGENT_CACHE_KEY, JSON.stringify(cache));
+  }catch(e){ console.warn('[Cache] 缓存失败', e); }
+}
+function getCachedOutput(name, maxAge=3600000){
+  try{
+    const cache=JSON.parse(localStorage.getItem(AGENT_CACHE_KEY)||'{}');
+    const item=cache[name];
+    if(item && Date.now()-item.ts<maxAge){ return item.output; }
+  }catch(e){}
+  return null;
+}
+function clearAgentCache(){ try{ localStorage.removeItem(AGENT_CACHE_KEY); }catch(e){} }
+
+// ===== 全局 Agent 上下文（Agent 间数据流转的载体）=====
+let agentContext={
+  resumeText:'', jdText:'',
+  resumeStructured:null, jdStructured:null,
+  matchResult:null, scriptsResult:null, resumeResult:null
+};
+
+// ===== Orchestrator（编排者，规则驱动，不调 LLM）=====
+const Orchestrator={
+  // UI 状态更新：在工作台状态条上显示每个 Agent 的状态
+  updateUI(agentName, status, detail){
+    const chip=document.querySelector('[data-agent-chip="'+agentName+'"]');
+    if(!chip) return;
+    chip.className='agent-chip '+status;
+    const icons={done:'✓', working:'⏳', pending:'○', failed:'✗'};
+    chip.innerHTML='<span class="agent-ico">'+(icons[status]||'○')+'</span> '+chip.dataset.label;
+    // 状态条下方提示
+    const hint=document.getElementById('agentStatusHint');
+    if(hint){
+      const labels={
+        resumeAnalyzer:'简历分析 Agent', jdAnalyzer:'JD 分析 Agent',
+        matchAgent:'匹配分析 Agent', copywriter:'话术生成 Agent',
+        rewriter:'简历改写 Agent'
+      };
+      if(status==='working') hint.textContent='⏳ '+labels[agentName]+' 正在工作...';
+      else if(status==='done') hint.textContent='✓ '+labels[agentName]+' 完成';
+      else if(status==='failed') hint.textContent='✗ '+labels[agentName]+' 失败（已跳过，不影响其他 Agent）';
+    }
+  },
+  // 显示状态条
+  showBar(){
+    const bar=document.getElementById('agentStatusBar');
+    if(bar) bar.style.display='';
+  },
+  hideBar(){
+    const bar=document.getElementById('agentStatusBar');
+    if(bar) bar.style.display='none';
+  },
+  // 重置所有 chip 为 pending
+  resetChips(){
+    document.querySelectorAll('[data-agent-chip]').forEach(c=>{
+      c.className='agent-chip pending';
+      c.innerHTML='<span class="agent-ico">○</span> '+c.dataset.label;
+    });
+  },
+  // 主编排入口：analyze_jd 流程
+  async runAnalyzeJd(resumeText, jdText){
+    this.showBar(); this.resetChips();
+    const results={ errors:{} };
+
+    // Step 1（并行）：Resume Analyzer + JD Analyzer
+    this.updateUI('resumeAnalyzer','working');
+    this.updateUI('jdAnalyzer','working');
+    const resumeP=(async()=>{
+      try{
+        const cached=getCachedOutput('resumeAnalyzer');
+        if(cached && cached._resumeText===resumeText){ this.updateUI('resumeAnalyzer','done'); return cached; }
+        const r=await Agents.resumeAnalyzer.run({resumeText});
+        r._resumeText=resumeText; cacheAgentOutput('resumeAnalyzer', r);
+        this.updateUI('resumeAnalyzer','done'); return r;
+      }catch(e){ console.error('[Agent] resumeAnalyzer 失败:',e); this.updateUI('resumeAnalyzer','failed'); results.errors.resumeAnalyzer=e.message; return null; }
+    })();
+    const jdP=(async()=>{
+      try{
+        const cached=getCachedOutput('jdAnalyzer');
+        if(cached && cached._jdText===jdText){ this.updateUI('jdAnalyzer','done'); return cached; }
+        const r=await Agents.jdAnalyzer.run({jdText});
+        r._jdText=jdText; cacheAgentOutput('jdAnalyzer', r);
+        this.updateUI('jdAnalyzer','done'); return r;
+      }catch(e){ console.error('[Agent] jdAnalyzer 失败:',e); this.updateUI('jdAnalyzer','failed'); results.errors.jdAnalyzer=e.message; return null; }
+    })();
+    const [resumeStruct, jdStruct]=await Promise.all([resumeP, jdP]);
+    results.resumeAnalyzer=resumeStruct; results.jdAnalyzer=jdStruct;
+    agentContext.resumeStructured=resumeStruct; agentContext.jdStructured=jdStruct;
+
+    // Step 2：Match Agent（依赖 Step 1）
+    if(resumeStruct && jdStruct){
+      this.updateUI('matchAgent','working');
+      try{
+        const r=await Agents.matchAgent.run({resume_structured:resumeStruct, jd_structured:jdStruct});
+        results.matchAgent=r; agentContext.matchResult=r;
+        this.updateUI('matchAgent','done');
+      }catch(e){ console.error('[Agent] matchAgent 失败:',e); this.updateUI('matchAgent','failed'); results.errors.matchAgent=e.message; }
+    }else{
+      this.updateUI('matchAgent','failed');
+      results.errors.matchAgent='上游 Agent 失败，无法计算匹配度';
+    }
+
+    // Step 3（并行）：Copywriter + Rewriter（依赖 Step 2，但失败不阻断）
+    if(results.matchAgent){
+      this.updateUI('copywriter','working');
+      this.updateUI('rewriter','working');
+      const cp=(async()=>{
+        try{
+          const r=await Agents.copywriter.run({
+            match_result:results.matchAgent,
+            resume_summary:resumeStruct?.summary||'',
+            jd_summary:jdStruct?.summary||'',
+            style:scriptStyle
+          });
+          results.copywriter=r; agentContext.scriptsResult=r;
+          scriptsData=r; state.scriptsLoaded=true; // 直接填充话术 Tab
+          this.updateUI('copywriter','done'); return r;
+        }catch(e){ console.error('[Agent] copywriter 失败:',e); this.updateUI('copywriter','failed'); results.errors.copywriter=e.message; }
+      })();
+      const rw=(async()=>{
+        try{
+          const r=await Agents.rewriter.run({
+            match_result:results.matchAgent,
+            resume_structured:resumeStruct,
+            jd_structured:jdStruct,
+            mode:resumeMode
+          });
+          results.rewriter=r; agentContext.resumeResult=r;
+          resumeData=r; state.resumeLoaded=true; // 直接填充简历 Tab
+          this.updateUI('rewriter','done'); return r;
+        }catch(e){ console.error('[Agent] rewriter 失败:',e); this.updateUI('rewriter','failed'); results.errors.rewriter=e.message; }
+      })();
+      await Promise.all([cp, rw]);
+    }
+
+    // 完成提示 + V5 智能路由：根据匹配分数动态给出下一步建议
+    const hint=document.getElementById('agentStatusHint');
+    if(hint){
+      const errCount=Object.keys(results.errors).length;
+      const score=results.matchAgent?.score;
+      if(errCount>0){
+        hint.textContent='✓ 协作完成（'+errCount+' 个 Agent 失败已跳过）';
+      }else if(score<60){
+        hint.textContent='⚠️ 匹配度'+score+'/100，建议优先查看「定制简历」补齐硬性门槛';
+        results._routeHint='匹配度较低，已自动生成简历改写建议，请查看「定制简历」Tab';
+      }else if(score>=85){
+        hint.textContent='✓ 匹配度'+score+'/100，建议直接查看「投递话术」快速投递';
+        results._routeHint='匹配度优秀，已自动生成投递话术，请查看「投递话术」Tab';
+      }else{
+        hint.textContent='✓ 全部 Agent 协作完成（匹配度'+score+'/100）';
+        results._routeHint='匹配度良好，话术和定制简历均已生成，建议先查看「投递话术」再完善简历';
+      }
+    }
+    return results;
+  }
+};
+
+/* ===== RAG 模块：TF-IDF + IndexedDB 面经检索 ===== */
+
+// --- IndexedDB 管理 ---
+const RagDB={
+  dbName:'cv-agent-rag', version:1, storeName:'interviews', db:null,
+  async init(){
+    return new Promise((resolve,reject)=>{
+      const req=indexedDB.open(this.dbName,this.version);
+      req.onupgradeneeded=(e)=>{ const db=e.target.result; if(!db.objectStoreNames.contains(this.storeName)){ db.createObjectStore(this.storeName,{keyPath:'id',autoIncrement:true}); } };
+      req.onsuccess=(e)=>{ this.db=e.target.result; resolve(this.db); };
+      req.onerror=(e)=>reject(e.target.error);
+    });
+  },
+  async add(item){ if(!this.db) await this.init(); return new Promise((resolve,reject)=>{ const tx=this.db.transaction(this.storeName,'readwrite'); const req=tx.objectStore(this.storeName).add(item); req.onsuccess=()=>resolve(req.result); req.onerror=(e)=>reject(e.target.error); }); },
+  async getAll(){ if(!this.db) await this.init(); return new Promise((resolve,reject)=>{ const tx=this.db.transaction(this.storeName,'readonly'); const req=tx.objectStore(this.storeName).getAll(); req.onsuccess=()=>resolve(req.result||[]); req.onerror=(e)=>reject(e.target.error); }); },
+  async delete(id){ if(!this.db) await this.init(); return new Promise((resolve,reject)=>{ const tx=this.db.transaction(this.storeName,'readwrite'); const req=tx.objectStore(this.storeName).delete(id); req.onsuccess=()=>resolve(); req.onerror=(e)=>reject(e.target.error); }); },
+  async clear(){ if(!this.db) await this.init(); return new Promise((resolve,reject)=>{ const tx=this.db.transaction(this.storeName,'readwrite'); const req=tx.objectStore(this.storeName).clear(); req.onsuccess=()=>resolve(); req.onerror=(e)=>reject(e.target.error); }); }
+};
+
+// --- TF-IDF 向量化（纯前端，零外部依赖） ---
+const TFIDF={
+  // 中文分词：按标点/空格分割 + 2-3字滑窗（兼顾单字词和短语匹配）
+  tokenize(text){
+    if(!text) return [];
+    const segs=text.toLowerCase().split(/[^\u4e00-\u9fa5a-z0-9]+/).filter(s=>s.length>0);
+    const tokens=[];
+    for(const seg of segs){
+      if(seg.length<=2){ tokens.push(seg); }
+      else{
+        for(let i=0;i<seg.length-1;i++) tokens.push(seg.substring(i,i+2)); // 2-gram
+        for(let i=0;i<seg.length-2;i++) tokens.push(seg.substring(i,i+3)); // 3-gram
+      }
+    }
+    return tokens;
+  },
+  // 词频 TF
+  tf(tokens){ const tf={}; for(const t of tokens) tf[t]=(tf[t]||0)+1; const n=tokens.length||1; for(const t in tf) tf[t]/=n; return tf; },
+  // 逆文档频率 IDF（平滑处理，避免除零）
+  buildIdf(allTokens){
+    const N=allTokens.length||1; const df={};
+    for(const tokens of allTokens){ const seen=new Set(tokens); for(const t of seen) df[t]=(df[t]||0)+1; }
+    const idf={}; for(const t in df) idf[t]=Math.log((N+1)/(df[t]+1))+1;
+    return idf;
+  },
+  // TF-IDF 向量
+  vectorize(tokens,idf){ const tf=this.tf(tokens); const vec={}; for(const t in tf){ if(idf[t]) vec[t]=tf[t]*idf[t]; } return vec; },
+  // 余弦相似度
+  cosineSim(v1,v2){ let dot=0,m1=0,m2=0; for(const t in v1){ if(v2[t]) dot+=v1[t]*v2[t]; m1+=v1[t]*v1[t]; } for(const t in v2) m2+=v2[t]*v2[t]; if(m1===0||m2===0) return 0; return dot/(Math.sqrt(m1)*Math.sqrt(m2)); }
+};
+
+// --- RAG 检索接口 ---
+const RAG={
+  // 检索 top-k 相关面经（动态计算 IDF，支持增删后即时生效）
+  async retrieve(query,topK=5){
+    const allItems=await RagDB.getAll();
+    if(allItems.length===0) return [];
+    const allTokens=allItems.map(item=>item.tokens||TFIDF.tokenize(item.question+' '+(item.answer||'')));
+    const idf=TFIDF.buildIdf(allTokens);
+    const qVec=TFIDF.vectorize(TFIDF.tokenize(query),idf);
+    const scored=allItems.map((item,i)=>({...item,score:TFIDF.cosineSim(qVec,TFIDF.vectorize(allTokens[i],idf))}));
+    scored.sort((a,b)=>b.score-a.score);
+    return scored.slice(0,topK).filter(s=>s.score>0.01);
+  }
+};
+
+// --- 面经库 UI 管理 ---
+async function renderRagPage(){ await RagDB.init(); await updateRagCount(); await renderRagList(); }
+async function updateRagCount(){ const items=await RagDB.getAll(); const el=$('ragCount'); if(el) el.textContent=items.length; }
+async function renderRagList(){
+  const items=await RagDB.getAll(); const el=$('ragList'); if(!el) return;
+  if(items.length===0){ el.innerHTML='<div class="empty" style="padding:24px;text-align:center;color:var(--t3);">题库为空，请添加面经或批量导入</div>'; return; }
+  el.innerHTML=items.map(item=>`<div class="script-card" style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;"><div style="flex:1;">${item.tag?`<span class="sev" style="background:#2563EB22;color:#2563EB;">${escapeHtml(item.tag)}</span> `:''}<strong>${escapeHtml(item.question)}</strong></div><button class="btn-outline btn-sm" data-ragdel="${item.id}">删除</button></div>${item.answer?`<div class="script-explain" style="margin-top:6px;">${escapeHtml(item.answer)}</div>`:''}</div>`).join('');
+  $$('#ragList [data-ragdel]').forEach(btn=>btn.addEventListener('click',async()=>{ await RagDB.delete(parseInt(btn.dataset.ragdel)); await updateRagCount(); await renderRagList(); }));
+}
+async function addRagItem(){
+  const q=$('ragQInput').value.trim(); const a=$('ragAInput').value.trim(); const tag=$('ragTagInput').value.trim();
+  if(!q){ showAlert('请输入面试问题'); return; }
+  const tokens=TFIDF.tokenize(q+' '+a);
+  await RagDB.add({question:q,answer:a,tag,tokens,createdAt:Date.now()});
+  $('ragQInput').value=''; $('ragAInput').value=''; $('ragTagInput').value='';
+  await updateRagCount(); await renderRagList(); showAlert('已添加到题库');
+}
+async function clearRagDB(){ if(!confirm('确定清空题库？此操作不可恢复。')) return; await RagDB.clear(); await updateRagCount(); await renderRagList(); showAlert('题库已清空'); }
+async function importRagItems(){
+  const text=prompt('批量导入面经（每行一条，格式：问题|||回答|||标签）\n示例：\n你在Dify里搭的工作流怎么设计的|||我用了IF/ELSE分支...|||AI产品');
+  if(!text) return;
+  const lines=text.split('\n').filter(l=>l.trim()); let count=0;
+  for(const line of lines){
+    const parts=line.split('|||'); const q=(parts[0]||'').trim(); const a=(parts[1]||'').trim(); const tag=(parts[2]||'').trim();
+    if(q){ const tokens=TFIDF.tokenize(q+' '+a); await RagDB.add({question:q,answer:a,tag,tokens,createdAt:Date.now()}); count++; }
+  }
+  await updateRagCount(); await renderRagList(); showAlert('已导入 '+count+' 条面经');
+}
+async function testRagRetrieve(){
+  const query=$('ragTestInput').value.trim(); if(!query){ showAlert('请输入测试问题'); return; }
+  const el=$('ragTestResult'); el.innerHTML='<div class="loading-block"><div class="spinner"></div><div>正在检索...</div></div>';
+  const results=await RAG.retrieve(query,5);
+  if(results.length===0){ el.innerHTML='<div class="empty" style="padding:16px;color:var(--t3);">题库为空或未找到相关面经</div>'; return; }
+  el.innerHTML=results.map((r,i)=>`<div class="script-card" style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-size:12px;color:var(--t3);">#${i+1}</span><span class="sev" style="background:#10B98122;color:#10B981;">相似度 ${(r.score*100).toFixed(1)}%</span></div><div style="margin-top:6px;"><strong>${escapeHtml(r.question)}</strong></div>${r.answer?`<div class="script-explain" style="margin-top:4px;">${escapeHtml(r.answer)}</div>`:''}${r.tag?`<div style="margin-top:4px;font-size:12px;color:var(--t3);">标签：${escapeHtml(r.tag)}</div>`:''}</div>`).join('');
+}
+// 面经库事件绑定
+$('ragAddBtn')?.addEventListener('click',addRagItem);
+$('ragClearBtn')?.addEventListener('click',clearRagDB);
+$('ragImportBtn')?.addEventListener('click',importRagItems);
+$('ragTestBtn')?.addEventListener('click',testRagRetrieve);
+
 /* ===== 辅助 ===== */
 function escapeHtml(s){ if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 /* 统一渲染 AI 回复：过滤 <think> + Markdown → HTML */
@@ -660,11 +1207,12 @@ function isJdText(t){ if(t.length<100) return false; const kw=['岗位','职责'
 /* ===== 导航 ===== */
 function switchPage(page){
   $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
-  ['workbench','profile','applications','interview'].forEach(p=>$('page-'+p).classList.toggle('hidden',p!==page));
+  ['workbench','profile','applications','interview','rag'].forEach(p=>$('page-'+p).classList.toggle('hidden',p!==page));
   window.scrollTo({top:0,behavior:'smooth'});
   if(page==='profile') renderProfilePage();
   if(page==='applications') renderApplicationsPage();
   if(page==='interview') renderIvHistory();
+  if(page==='rag') renderRagPage();
 }
 $$('.nav-item').forEach(n=>n.addEventListener('click',()=>switchPage(n.dataset.page)));
 
@@ -673,8 +1221,18 @@ function switchTab(tab){
   $$('.bt-item').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
   $$('.bt-panel').forEach(p=>p.classList.remove('active'));
   $('tab-'+tab).classList.add('active');
-  if(tab==='scripts'&&!state.scriptsLoaded&&activeProfile()&&Store.get().current_jd) loadScripts();
-  if(tab==='resume'&&!state.resumeLoaded&&activeProfile()&&Store.get().current_jd) loadResume();
+  // 话术 Tab：若 Agent 已生成则直接渲染，否则按需生成
+  if(tab==='scripts'){
+    if(state.scriptsLoaded && scriptsData) renderScripts();
+    else if(!state.scriptsLoaded && activeProfile() && Store.get().current_jd) loadScripts();
+    else renderScriptsEmpty();
+  }
+  // 简历 Tab：同上
+  if(tab==='resume'){
+    if(state.resumeLoaded && resumeData) renderResume();
+    else if(!state.resumeLoaded && activeProfile() && Store.get().current_jd) loadResume();
+    else renderResumeEmpty();
+  }
   if(tab==='ivprep') renderIvPrep();
 }
 $$('.bt-item').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
@@ -752,8 +1310,8 @@ $('uploadConfirmBtn').addEventListener('click',async()=>{
 
 async function parseResume(text){
   if(!apiKey) return {name:'',education:[],experience:[],projects:[],skills:[]};
-  const sys='你是简历解析器。解析简历返回严格JSON，不要额外文字或代码块标记：{"name":"姓名","education":[{"school":"","major":"","period":""}],"experience":[{"company":"","role":"","period":""}],"projects":[{"name":"","desc":""}],"skills":["技能1"]}';
-  try{ return await callApiJson(sys,'解析简历：\n'+text.slice(0,3000),0.2); }catch(e){ return {name:'',education:[],experience:[],projects:[],skills:[]}; }
+  // V5：走 resumeAnalyzer Agent（含 few-shot + 重试机制）
+  try{ return await Agents.resumeAnalyzer.run({resumeText:text.slice(0,3000)}); }catch(e){ console.warn('[parseResume] Agent 失败:',e.message); return {name:'',education:[],experience:[],projects:[],skills:[]}; }
 }
 
 /* ===== 档案卡片渲染 ===== */
@@ -801,7 +1359,7 @@ function renderJdBar(){
     bar.innerHTML=`<span class="hint">粘贴一段 JD 开始分析 →（在下方聊天框粘贴，或去「投递记录」添加）</span>`;
   }
 }
-function resetAnalysis(){ state.scriptsLoaded=false; state.resumeLoaded=false; state.matchResult=null; renderMatchEmpty(); renderScriptsEmpty(); renderResumeEmpty(); }
+function resetAnalysis(){ state.scriptsLoaded=false; state.resumeLoaded=false; state.matchResult=null; scriptsData=null; resumeData=null; agentContext.matchResult=null; agentContext.scriptsResult=null; agentContext.resumeResult=null; Orchestrator.hideBar(); renderMatchEmpty(); renderScriptsEmpty(); renderResumeEmpty(); }
 
 /* ===== 聊天框 ===== */
 const chatInput=$('chatInput'),chatHistory=$('chatHistory'),chatSendBtn=$('chatSendBtn');
@@ -853,16 +1411,34 @@ function appendTyping(){
 async function doChat(text){
   appendMsg('user',text); appendTyping(); chatSending=true; updateSendBtn();
   const p=activeProfile(); const jd=Store.get().current_jd;
-  let attachContext='';
+  // V5：走 chatAssistant Agent，复用 agentContext 中的结构化数据
+  let attachmentText='';
   if(chatAttachment){
-    if(chatAttachment.type==='text') attachContext='\n\n【附件内容：'+chatAttachment.name+'】\n'+chatAttachment.text.slice(0,1500);
-    else if(chatAttachment.type==='image') attachContext='\n\n【用户上传了图片：'+chatAttachment.name+'，当前模型不支持图片识别，请提醒用户改用文字描述】';
+    if(chatAttachment.type==='text') attachmentText=chatAttachment.text.slice(0,1500);
+    else if(chatAttachment.type==='image') attachmentText='[用户上传了图片：'+chatAttachment.name+'，当前模型不支持图片识别]';
   }
-  const sys=`你是 CV Agent 求职助手。基于用户简历和当前JD回答问题。简洁专业，必要时给具体建议。\n简历摘要：${p.resume_text.slice(0,1200)}\n当前JD：${jd?(jd.company+' '+jd.position+' '+jd.jd_text.slice(0,600)):'无'}${attachContext}`;
   try{
-    const r=await callApi(sys,text,0.7);
+    // RAG：自动检索题库中与用户问题相关的面经
+    const ragResults=await RAG.retrieve(text,5);
+    const ragContext=ragResults.length>0?ragResults.map(r=>({question:r.question,answer:r.answer||'',score:r.score})):null;
+    const r=await Agents.chatAssistant.run({
+      resume_summary:p.resume_text.slice(0,1200),
+      resume_structured:p.parsed||null,
+      jd_summary:jd?(jd.company+' '+jd.position+' '+jd.jd_text.slice(0,600)):'无',
+      match_result:agentContext.matchResult?{
+        score:agentContext.matchResult.score,
+        matched:(agentContext.matchResult.matched||[]).map(x=>x.title),
+        unmatched:(agentContext.matchResult.unmatched||[]).map(x=>x.title),
+        suggestions:agentContext.matchResult.suggestions
+      }:null,
+      rag_context:ragContext,
+      attachment:attachmentText||null,
+      question:text
+    });
     $('typingMsg')?.remove();
-    appendMsg('ai',r.content);
+    const replyText=r.reply||r.content||JSON.stringify(r);
+    const ragNote=ragContext&&ragContext.length>0?replyText+'\n\n---\n*📌 本次回答参考了题库中 '+ragContext.length+' 条相关面经*':replyText;
+    appendMsg('ai',ragNote);
   }catch(e){ $('typingMsg')?.remove(); appendMsg('ai','出错：'+e.message); }
   finally{ chatSending=false; updateSendBtn(); clearAttachment(); }
 }
@@ -910,28 +1486,61 @@ async function analyzeNewJd(jdText){
   if(!activeProfile()){ showAlert('请先上传简历'); openUploadModal(); return; }
   switchTab('match');
   const p=activeProfile();
-  $('tab-match').innerHTML=loadingHtml('正在分析匹配度...');
-  // 第一步: 抽取公司/岗位（失败不阻断，用默认值继续）
-  let company='目标公司', position='目标岗位';
+  $('tab-match').innerHTML=loadingHtml('🤖 Agent 协作分析中，请稍候...');
+  // 公司/岗位从 JD Analyzer 结果取（不再单独调一次 API）
+  agentContext.resumeText=p.resume_text;
+  agentContext.jdText=jdText;
   try{
-    const meta=await callApiJson('从JD中提取公司名和岗位名，返回严格JSON：{"company":"","position":""}','JD：\n'+jdText.slice(0,800),0.1);
-    if(meta&&meta.company) company=meta.company;
-    if(meta&&meta.position) position=meta.position;
-    console.log('[CV Agent] 公司岗位抽取成功:', company, position);
-  }catch(e){ console.warn('[CV Agent] 公司岗位抽取失败，使用默认值继续:', e.message); }
-  // 第二步: 真正的匹配分析
-  try{
+    // ===== 调用 Orchestrator 编排 5 个 Agent =====
+    const results=await Orchestrator.runAnalyzeJd(p.resume_text, jdText);
+    const jdStruct=results.jdAnalyzer||{};
+    const company=jdStruct.company||'目标公司';
+    const position=jdStruct.position||'目标岗位';
     Store.get().current_jd={ company, position, jd_text:jdText }; Store.flush();
     renderJdBar();
-    const r=await callMatch(p.resume_text,jdText);
-    Store.get().current_jd.match_result=r; Store.flush();
-    state.matchResult=r; state.scriptsLoaded=false; state.resumeLoaded=false;
-    renderMatch(r);
-    appendMsg('ai',`已分析「${company} · ${position}」的匹配度：${r.score}/100。可在下方追问，或切换 Tab 查看话术/定制简历。`);
+
+    // 渲染匹配分析（Match Agent 输出）
+    const matchR=results.matchAgent;
+    if(matchR){
+      Store.get().current_jd.match_result=matchR; Store.flush();
+      state.matchResult=matchR;
+      renderMatch(matchR);
+      // 话术/简历已被 Orchestrator 直接填充到 scriptsData/resumeData
+      if(results.copywriter){ state.scriptsLoaded=true; }
+      if(results.rewriter){ state.resumeLoaded=true; }
+      // 对话区显示 Agent 调用链 + V5 智能路由建议
+      const chainHtml=buildAgentChainHtml(results);
+      const score=matchR.score||0;
+      const routeHint=results._routeHint||'';
+      const scoreBadge=score<60?'⚠️ 偏低':score>=85?'✅ 优秀':'📊 良好';
+      const routeHtml=routeHint?`\n\n> **📌 智能路由建议：**${routeHint}\n`:''; 
+      appendMsg('ai', `已分析「${company} · ${position}」的匹配度：**${score}/100** ${scoreBadge}\n\n${chainHtml}${routeHtml}\n\n可在下方追问，或切换 Tab 查看话术 / 定制简历（已由 Agent 协作生成完毕）。`);
+    }else{
+      renderMatchError('匹配分析 Agent 失败', { company, position, jdLen:jdText.length, resumeLen:p.resume_text.length, apiKeyPrefix:'sk-'+apiKey.slice(3,9), errors:results.errors });
+    }
   }catch(e){
-    console.error('[CV Agent] 匹配分析失败:', e);
-    renderMatchError(e.message, { company, position, jdLen:jdText.length, resumeLen:p.resume_text.length, apiKeyPrefix:'sk-'+apiKey.slice(3,9) });
+    console.error('[CV Agent] Orchestrator 编排失败:', e);
+    renderMatchError(e.message, { jdLen:jdText.length, resumeLen:p.resume_text.length, apiKeyPrefix:'sk-'+apiKey.slice(3,9) });
   }
+}
+// 构建 Agent 调用链展示 HTML（对话区用）
+function buildAgentChainHtml(results){
+  const items=[
+    {key:'resumeAnalyzer', label:'简历分析 Agent', desc:'提取结构化信息'},
+    {key:'jdAnalyzer',     label:'JD 分析 Agent',   desc:'提取岗位要求'},
+    {key:'matchAgent',     label:'匹配分析 Agent',   desc:'计算匹配度'},
+    {key:'copywriter',     label:'话术生成 Agent',   desc:'生成投递话术'},
+    {key:'rewriter',       label:'简历改写 Agent',   desc:'生成定制简历'}
+  ];
+  const lines=items.map(it=>{
+    const v=results[it.key];
+    const ok=v!==undefined && v!==null;
+    const err=results.errors[it.key];
+    if(ok) return '<div class="ac-line ac-done">✓ 🤖 '+it.label+' → '+it.desc+'</div>';
+    if(err) return '<div class="ac-line ac-fail">✗ 🤖 '+it.label+' → 失败：'+escapeHtml(err)+'</div>';
+    return '<div class="ac-line">○ 🤖 '+it.label+' → 未执行</div>';
+  });
+  return '<div class="agent-chain">'+lines.join('')+'</div>';
 }
 function openApiSetting(){ $('apiKeyInput').value=apiKey; $('apiKeyInput').type='password'; $('apiModal').classList.add('open'); }
 // 渲染匹配分析失败 + 可折叠调试信息
@@ -958,12 +1567,6 @@ function renderMatchError(msg, ctx){
     '</div>';
   $('retryMatchBtn').addEventListener('click',()=>{ const jd=Store.get().current_jd; analyzeNewJd(jd?jd.jd_text:''); });
   $('openApiOnErrorBtn').addEventListener('click',openApiSetting);
-}
-async function callMatch(resume,jd){
-  const sys=`你是资深HR和岗位匹配专家。分析简历与JD匹配度。返回严格JSON，不要额外文字或代码块标记：
-{"score":0-100整数,"job_title":"岗位名","matched":[{"title":"","detail":""}],"unmatched":[{"title":"","detail":"","severity":"high|medium"}],"suggestions":["具体建议"]}
-要求：matched最多6条，unmatched最多6条，suggestions 3-5条具体到措辞修改。severity:high=硬性门槛,medium=建议补齐。`;
-  return await callApiJson(sys,'简历：\n'+resume.slice(0,2500)+'\n\nJD：\n'+jd.slice(0,1500),0.3);
 }
 function renderMatchEmpty(){ $('tab-match').innerHTML='<div class="empty">粘贴一段 JD 开始匹配分析</div>'; }
 function renderMatch(r){
@@ -1022,43 +1625,17 @@ async function loadScripts(){
   if(!p||!jd){ renderScriptsEmpty(); return; }
   $('tab-scripts').innerHTML=loadingHtml('正在生成投递话术（'+scriptStyle+'风格）...');
   try{
-    const sys=`你是一位资深 HR 沟通专家，擅长帮候选人写投递话术。基于候选人简历和岗位 JD 生成 3 种投递话术，返回严格 JSON，不要额外文字或代码块标记：
-{"boss":{"content":"Boss直聘开场白正文","explanation":"为什么这样写"},"email":{"content":"邮件投递正文","explanation":"..."},"cover_letter":{"content":"英文Cover Letter正文","explanation":"..."}}
-
-## 通用要求（三种话术都必须遵守）
-1. 必须引用简历里的真实经历/项目/技能，绝不编造
-2. 精准匹配 JD：从简历挑 1-2 个最相关的点，直接对应 JD 关键词
-3. 严禁套话：禁止"我对贵公司非常感兴趣""希望有机会加入贵公司""贵公司平台很大"等空洞表达
-4. 必须有具体信息：数字、项目名、工具名、学校、公司名
-5. 突出与 JD 最匹配的技能
-
-## Boss 直聘开场白（boss）专项要求
-- 第一句自报家门：学校/公司 + 年级/身份 + 姓名（如"广东工业大学大三的 XXX"）
-- 第二句精准匹配 JD：从简历挑 1-2 个最相关项目/技能，直接对应 JD 关键词
-- 第三句表达求职动机：为什么是这个公司+这个岗位（具体，不要空话）
-- 结尾礼貌收尾，主动询问是否方便进一步沟通
-- 总字数 ≤ 100 字，信息密度高，每句话都有信息
-
-## 好话术示例（请模仿这个语气和具体度）
-示例 1（应聘字节 AI 产品实习）：
-"您好学长/HR 老师，我是广东工业大学大三的 XXX，看到字节的 AI 产品实习 JD 里提到要'设计 Prompt 模板并评估输出质量'，我上个月刚用 Dify 搭了一个 7 节点的 AI 学习搭子工作流（开始→知识检索→IF/ELSE→双 LLM→输出），实现了'根据剩余天数自动切换极限突击/稳步复习两套策略'。很希望和您聊聊，看能否约个面试。打扰了！"
-
-示例 2（应聘某 AI 创业公司）：
-"您好，我是 XXX，应聘贵司的 AI 产品岗。我注意到 JD 里强调'AI 工具落地能力'，我最近一周用 Trae Vibe Coding + DeepSeek API 从零搭了一个 CV Agent 求职工作台，已上线可演示。对 AI 产品有天然好奇心，希望能加入团队一起做点东西。"
-
-## 邮件投递（email）专项要求
-- 正式邮件格式：称呼 + 自我介绍 + 匹配点（2-3 个具体经历对应 JD）+ 结尾
-- 200-300 字，含具体项目/数字
-- 主题清晰，附件提示
-
-## 英文 Cover Letter（cover_letter）专项要求
-- 纯英文，3 段，150-200 词
-- 第一段：申请岗位 + 信息来源 + 一句亮点
-- 第二段：2-3 个最相关经历，对应 JD
-- 第三段：动机 + 结尾
-
-${STYLE_SUFFIX[scriptStyle]||''}`;
-    scriptsData=await callApiJson(sys,'简历：\n'+p.resume_text.slice(0,1800)+'\n\nJD：\n'+jd.jd_text.slice(0,1000),0.7);
+    // V5：走 copywriter Agent，复用 agentContext 中的结构化数据
+    const matchResult=agentContext.matchResult || Store.get().current_jd?.match_result;
+    scriptsData=await Agents.copywriter.run({
+      match_result: matchResult || null,
+      resume_summary: p.parsed?.summary || '',
+      resume_text: p.resume_text.slice(0,1800),
+      jd_text: jd.jd_text.slice(0,1000),
+      jd_summary: (jd.company||'')+' '+(jd.position||''),
+      style: scriptStyle,
+      extra_instructions: (STYLE_SUFFIX[scriptStyle]||'')+'\n如果没有match_result，请自行从resume_text和jd_text中分析匹配点。Boss话术第一句自报家门（学校/公司+身份+姓名），≤100字。邮件200-300字。Cover Letter英文150-200词。'
+    });
     state.scriptsLoaded=true; renderScripts();
   }catch(e){ showAlert(e.message); $('tab-scripts').innerHTML='<div class="empty">生成失败，请重试</div>'; }
 }
@@ -1166,16 +1743,19 @@ async function loadResume(){
   if(!p||!jd){ renderResumeEmpty(); return; }
   $('tab-resume').innerHTML=loadingHtml('正在生成定制简历...');
   try{
-    const sys=`你是资深简历优化师和转行顾问。根据简历和JD生成定制简历。返回严格JSON，不要额外文字或代码块标记：
-{"mode":"${resumeMode}","target_job":"","current_job":"","common_skills":["共有技能"],"resume_markdown":"完整Markdown简历","explanation":"改写说明","suggested_additions":[{"section":"","content":""}]}
-要求：
-1. 识别当前岗位与目标岗位的共有技能，重新包装现有经历突出相关性
-2. JD要求但简历没有的，在对应位置插入【建议补充：XXX】，不伪造经历
-3. STAR法则描述，补充量化数据
-4. 技能关键词与JD一致
-5. 跨岗时工作经历标题标注转换方向（如"运营专员（转AI产品方向）"）
-6. mode=${resumeMode}（framework模式缺失项标注【建议补充】）`;
-    resumeData=await callApiJson(sys,'简历：\n'+p.resume_text.slice(0,2500)+'\n\nJD：\n'+jd.jd_text.slice(0,1200),resumeMode==='framework'?0.5:0.3);
+    // V5：走 rewriter Agent，复用 agentContext 中的结构化数据
+    const matchResult=agentContext.matchResult || Store.get().current_jd?.match_result;
+    const resumeStruct=agentContext.resumeStructured || p.parsed;
+    const jdStruct=agentContext.jdStructured;
+    resumeData=await Agents.rewriter.run({
+      match_result: matchResult || null,
+      resume_structured: resumeStruct || null,
+      resume_text: p.resume_text.slice(0,2500),
+      jd_structured: jdStruct || null,
+      jd_text: jd.jd_text.slice(0,1200),
+      mode: resumeMode,
+      extra_instructions: '跨岗时工作经历标题标注转换方向。framework模式缺失项标注【建议补充】。'
+    });
     state.resumeLoaded=true; renderResume();
   }catch(e){ showAlert(e.message); $('tab-resume').innerHTML='<div class="empty">生成失败，请重试</div>'; }
 }
@@ -1195,18 +1775,26 @@ function renderIvPrep(){
 async function loadIvPrep(){
   const p=activeProfile(); const jd=Store.get().current_jd;
   if(!p||!jd){ renderIvPrep(); return; }
-  $('tab-ivprep').innerHTML=loadingHtml('正在生成面试问题...');
+  $('tab-ivprep').innerHTML=loadingHtml('正在检索题库 + 生成面试问题...');
   try{
-    const sys=`你是资深面试官。根据简历和JD生成面试可能问到的问题与参考答案。返回严格JSON，不要额外文字或代码块标记：
-{"questions":[{"category":"技术/项目/行为/HR","question":"问题","key_points":"考察点","answer":"参考答案要点"}]}
-生成 6-8 个问题，覆盖技术深挖、项目细节、行为问题、HR 常见问题。answer 要结合简历真实经历。`;
-    ivPrepData=await callApiJson(sys,'简历：\n'+p.resume_text.slice(0,1800)+'\n\nJD：\n'+jd.jd_text.slice(0,1000),0.6);
-    renderIvPrepContent(ivPrepData);
+    // RAG：检索题库中与 JD 相关的面经
+    const ragQuery=jd.position+' '+(agentContext.jdStructured?.keywords||[]).join(' ')+' '+jd.jd_text.slice(0,200);
+    const ragResults=await RAG.retrieve(ragQuery,5);
+    const ragContext=ragResults.length>0?ragResults.map(r=>({question:r.question,answer:r.answer||'',tag:r.tag||'',score:r.score})):null;
+    // 调用 interviewer Agent（带 RAG 上下文）
+    ivPrepData=await Agents.interviewer.run({
+      resume:{summary:p.parsed?.summary||'', text:p.resume_text.slice(0,1800), skills:p.parsed?.skills||[]},
+      jd:{position:jd.position, company:jd.company, text:jd.jd_text.slice(0,1000), keywords:agentContext.jdStructured?.keywords||[]},
+      rag_context:ragContext,
+      count:6
+    });
+    renderIvPrepContent(ivPrepData,ragContext);
   }catch(e){ showAlert(e.message); $('tab-ivprep').innerHTML='<div class="empty">生成失败，<button class="btn-outline btn-sm" id="retryIvBtn">重试</button></div>'; $('retryIvBtn')?.addEventListener('click',loadIvPrep); }
 }
-function renderIvPrepContent(data){
+function renderIvPrepContent(data,ragContext){
   const cats={技术:'#2563EB',项目:'#10B981',行为:'#F59E0B',HR:'#8B5CF6'};
-  $('tab-ivprep').innerHTML=`<div class="match-list-label">面试问题（共 ${(data.questions||[]).length} 题）</div>
+  const ragBadge=ragContext&&ragContext.length>0?`<span class="sev" style="background:#10B98122;color:#10B981;margin-left:8px;">📌 RAG 检索到 ${ragContext.length} 条相关面经</span>`:'';
+  $('tab-ivprep').innerHTML=`<div class="match-list-label">面试问题（共 ${(data.questions||[]).length} 题）${ragBadge}</div>
     ${(data.questions||[]).map((q,i)=>`<div class="script-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;"><div style="flex:1;"><span class="sev" style="background:${cats[q.category]||'#F3F4F6'}22;color:${cats[q.category]||'#6B7280'};">${escapeHtml(q.category||'')}</span> <strong style="margin-left:6px;">${escapeHtml(q.question||'')}</strong></div><button class="btn-outline btn-sm" data-ivcopy="${escapeAttr(q.answer||'')}">复制答案</button></div><div class="script-explain" style="margin-top:8px;">💡 考察点：${escapeHtml(q.key_points||'')}</div><div style="margin-top:6px;font-size:13px;line-height:1.7;">${escapeHtml(q.answer||'')}</div></div>`).join('')}
     <div style="margin-top:16px;"><button class="btn-outline btn-sm" id="regenIvBtn">重新生成</button> <button class="btn-outline btn-sm" id="simIvBtn">模拟面试对话</button></div>`;
   $$('#tab-ivprep [data-ivcopy]').forEach(b=>b.addEventListener('click',()=>{ copyText(b.dataset.ivcopy); const o=b.textContent; b.textContent='已复制 ✓'; setTimeout(()=>b.textContent=o,2000); }));
@@ -1281,18 +1869,21 @@ async function mockAskNext(){
   $('mockOverlayProgress').textContent='第 '+(i+1)+' / '+mockIv.count+' 题';
   mockAppendLoading('出题中');
   const p=activeProfile(); const jd=Store.get().current_jd;
-  const sys=`你是${mockIv.position}的资深面试官。请根据候选人简历和岗位 JD 生成第 ${i+1} 道面试题。
-要求：
-- 题型按进度自然切换（自我介绍 / 项目深挖 / 产品Sense / 行为面试 / 技术理解），不要重复上一题类型
-- 难度：${mockIv.difficulty}
-- 真实感：像真面试官会问的问题，不套路，不寒暄
-- 直接给题目本身，不要"好的，第X题"这种废话
-候选人简历：${p.resume_text.slice(0,1200)}
-岗位JD：${jd?(jd.company+' '+jd.position+' '+jd.jd_text.slice(0,500)):'无固定JD，按通用 '+mockIv.position+' 岗位要求出题'}`;
+  // V5：走 interviewer Agent（单题生成模式，复用 Agent prompt + few-shot）
+  const agentInput={
+    task:'single_question',
+    question_index:i+1,
+    total:mockIv.count,
+    difficulty:mockIv.difficulty,
+    previous_questions:mockIv.questions,
+    resume:{summary:p.parsed?.summary||'', text:p.resume_text.slice(0,1200), skills:p.parsed?.skills||[]},
+    jd:{position:mockIv.position, text:jd?jd.jd_text.slice(0,500):'', keywords:agentContext.jdStructured?.keywords||[]},
+    instruction:'只生成第 '+(i+1)+' 道面试题，题型按进度自然切换，不要重复上一题类型。直接给题目本身。'
+  };
   try{
-    const r=await callApi(sys,'请直接给出第 '+(i+1)+' 道面试题，只输出题目本身。',0.7);
+    const r=await Agents.interviewer.run(agentInput);
     $('mockLoading')?.remove();
-    const q=r.content.trim();
+    const q=r.questions?.[0]?.question || r.question || '请回答：你对这个岗位的理解是什么？';
     mockIv.questions.push(q);
     mockAppend('ai',q);
     $('mockInput').focus();
@@ -1329,29 +1920,16 @@ async function mockFinish(){
   $('mockBody').innerHTML='<div class="loading-block"><div class="spinner"></div><div>AI 正在批改你的所有回答并生成反馈报告...</div></div>';
   const p=activeProfile(); const jd=Store.get().current_jd;
   const qaText=mockIv.questions.map((q,i)=>'Q'+(i+1)+': '+q+'\nA'+(i+1)+': '+(mockIv.answers[i]||'(未作答)')).join('\n\n');
-  const sys=`你是${mockIv.position}的资深面试官，也是面试培训师。请对候选人刚才的 ${mockIv.count} 个回答逐一评估。
-
-【问题与回答】
-${qaText}
-
-候选人简历摘要：${p.resume_text.slice(0,800)}
-岗位JD：${jd?jd.jd_text.slice(0,400):'无'}
-
-【输出严格 JSON，不要额外文字或代码块标记】:
-{
-  "evaluations":[
-    {"index":1,"score":7,"feedback":"评价（50-100字，指出优点和不足）","rewrite":"改写后的标准答案（150-200字，STAR法则）","suggestions":["具体改进建议1","具体改进建议2"]}
-  ],
-  "summary":{
-    "overall_score":7.5,
-    "strengths":["强项1","强项2"],
-    "weaknesses":["弱项1（重点）","弱项2"],
-    "next_preparation":["下次重点准备1","下次重点准备2"]
-  }
-}
-评分标准 1-10：8-10 优秀，6-7 合格，4-5 较弱，1-3 差。weaknesses 要具体指出哪里没答好。evaluations 数量必须等于题目数量 ${mockIv.count}。`;
+  // V5：走 interviewEvaluator Agent
   try{
-    const r=await callApiJson(sys,'请按 JSON 格式输出评估结果。',0.4);
+    const r=await Agents.interviewEvaluator.run({
+      qa:mockIv.questions.map((q,i)=>({q, a:mockIv.answers[i]||'(未作答)'})),
+      position:mockIv.position,
+      difficulty:mockIv.difficulty,
+      count:mockIv.count,
+      resume_summary:p.parsed?.summary || p.resume_text.slice(0,800),
+      jd_summary:jd?jd.jd_text.slice(0,400):'无'
+    });
     mockIv.feedback=r;
     const sessions=loadMockIvSessions();
     sessions.unshift({ id:genId(), position:mockIv.position, count:mockIv.count, difficulty:mockIv.difficulty, questions:mockIv.questions, answers:mockIv.answers, feedback:r, created_at:new Date().toISOString().slice(0,10) });
@@ -1513,9 +2091,12 @@ $('ivAnalyzeBtn').addEventListener('click',async()=>{
   $('ivResult').innerHTML=loadingHtml('正在分析面试...');
   const jd=Store.get().current_jd;
   try{
-    const sys=`你是资深面试官和面试培训师。分析面试回答，给出结构化复盘报告。返回严格JSON，不要额外文字或代码块标记：
-{"totalScore":1-10,"dimensions":[{"name":"回答完整性","score":0-10},{"name":"STAR法则","score":0-10},{"name":"内容匹配度","score":0-10},{"name":"表达清晰度","score":0-10}],"questionAnalysis":[{"question":"问题","score":0-10,"improvement":"改进建议"}],"improvements":["整体改进建议"],"optimizedAnswer":"优化版标准答案示例"}`;
-    const r=await callApiJson(sys,'面试公司/岗位：'+company+'\nJD：'+(jd?jd.jd_text.slice(0,400):'无')+'\n\n面试文字稿：\n'+transcript.slice(0,2500),0.5);
+    // V5：走 interviewReviewer Agent
+    const r=await Agents.interviewReviewer.run({
+      company:company||'未填写',
+      jd_summary:jd?jd.jd_text.slice(0,400):'无',
+      transcript:transcript.slice(0,2500)
+    });
     const color=s=>s>=8?'var(--green)':s>=5?'var(--yellow)':'var(--red)';
     $('ivResult').innerHTML=`<div class="match-hero"><div><span class="match-score" style="color:${color(r.totalScore)}">${r.totalScore||0}</span><span class="match-suffix">/10</span></div></div>
       ${(r.dimensions||[]).map(d=>`<div class="match-list-label">${escapeHtml(d.name)} <span style="float:right;color:${color(d.score)}">${d.score}/10</span></div><div class="dim-bar"><div class="dim-fill" style="background:${color(d.score)}" data-w="${(d.score||0)*10}"></div></div>`).join('')}
