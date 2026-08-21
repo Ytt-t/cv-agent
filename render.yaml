@@ -1,0 +1,25 @@
+# Render 一键部署蓝图（后端）
+# 用法：把本仓库推送到 GitHub，在 Render 新建 Blueprint 选择本文件即可
+# 前端部署到 Vercel（导入 frontend/ 目录，设置 NEXT_PUBLIC_API_BASE 为后端域名）
+services:
+  - type: web
+    name: cv-agent-pro-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 8000
+    envVars:
+      # 生产数据库：用 Supabase 创建的 PostgreSQL 连接串替换
+      - key: DATABASE_URL
+        value: postgresql+psycopg2://cvagent:password@host:5432/cvagent
+      # DeepSeek API Key（在 Render 控制台手动填写，不写入仓库）
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      # 前端线上地址（Vercel 部署完成后替换）
+      - key: FRONTEND_ORIGIN
+        value: https://your-frontend.vercel.app
+      - key: SEED_DEMO
+        value: "true"

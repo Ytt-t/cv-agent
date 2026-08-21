@@ -1,0 +1,13 @@
+# 根 .gitignore：前端/后端各自还有更细的 .gitignore
+node_modules/
+.next/
+.venv/
+__pycache__/
+*.pyc
+*.db
+*.sqlite3
+.env
+.env.local
+.env*.local
+.DS_Store
+.npm-cache/

@@ -1,0 +1,43 @@
+# CV Agent Pro 本地一键启动（PostgreSQL + 后端）
+# 用法：
+#   docker compose up -d postgres backend
+# 环境变量通过 backend/.env 提供（参考 backend/.env.example）
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cvagent-postgres
+    environment:
+      POSTGRES_USER: cvagent
+      POSTGRES_PASSWORD: cvagent_secret
+      POSTGRES_DB: cvagent
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cvagent"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: cvagent-backend
+    environment:
+      # 使用 compose 内的 PostgreSQL；如想用外部数据库，直接改 DATABASE_URL
+      DATABASE_URL: postgresql+psycopg2://cvagent:cvagent_secret@postgres:5432/cvagent
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:-compose-dev-secret}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+      SEED_DEMO: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+volumes:
+  pgdata:
